@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>格斗游戏 - 拳皇 vs 炸弹人</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a12;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  #game-title {
+    color: #ff5500;
+    font-size: 26px;
+    font-weight: bold;
+    text-align: center;
+    letter-spacing: 6px;
+    text-shadow: 0 0 20px #ff5500, 0 0 40px #ff3300;
+    margin-bottom: 6px;
+    animation: titlePulse 2s ease-in-out infinite;
+  }
+
+  @keyframes titlePulse {
+    0%, 100% { text-shadow: 0 0 20px #ff5500, 0 0 40px #ff3300; }
+    50% { text-shadow: 0 0 30px #ff7744, 0 0 60px #ff5500, 0 0 80px #ff2200; }
+  }
+
+  #game-wrap {
+    position: relative;
+    width: 900px;
+    border: 2px solid #333;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(255,85,0,0.2), 0 0 100px rgba(255,85,0,0.08);
+  }
+
+  canvas { display: block; width: 100%; }
+
+  #hud {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .player-hud {
+    display: flex;
+    flex-direction: column;
+    width: 320px;
+  }
+
+  .player-hud.right { align-items: flex-end; }
+
+  .player-name {
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+    color: #fff;
+    text-shadow: 1px 1px 4px #000;
+  }
+
+  .hp-bar-wrap {
+    width: 100%;
+    height: 16px;
+    background: #111;
+    border: 1.5px solid #444;
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .hp-bar {
+    height: 100%;
+    border-radius: 1px;
+    transition: width 0.08s linear;
+  }
+
+  #p1-hp-bar { background: linear-gradient(90deg, #e74c3c, #ff6b35); }
+  #p2-hp-bar { background: linear-gradient(270deg, #3498db, #2ecc71); }
+
+  .player-hud.right .hp-bar-wrap { direction: rtl; }
+
+  .hp-text {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 10px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 2px #000;
+    z-index: 1;
+  }
+
+  #center-hud {
+    text-align: center;
+    flex: 1;
+    min-width: 100px;
+  }
+
+  #timer {
+    font-size: 28px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 2px 2px 8px #000;
+    line-height: 1;
+  }
+
+  #round-display {
+    font-size: 10px;
+    color: #aaa;
+    letter-spacing: 2px;
+    margin-top: 2px;
+  }
+
+  #overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    background: rgba(0,0,0,0.75);
+  }
+
+  #overlay h2 {
+    font-size: 34px;
+    font-weight: bold;
+    color: #ffd700;
+    text-shadow: 0 0 20px #ffa500, 0 0 40px #ff6600;
+    letter-spacing: 4px;
+    animation: winnerPulse 1s ease-in-out infinite;
+    margin-bottom: 12px;
+  }
+
+  @keyframes winnerPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  #overlay p { color: #ccc; font-size: 14px; margin-bottom: 20px; letter-spacing: 1px; }
+
+  #restart-btn {
+    padding: 10px 28px;
+    background: #e74c3c;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  #restart-btn:hover { background: #c0392b; transform: scale(1.05); }
+
+  #controls-hint {
+    color: #444;
+    font-size: 10px;
+    text-align: center;
+    margin-top: 8px;
+    letter-spacing: 1px;
+    line-height: 2;
+  }
+
+  #skill-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+  }
+
+  .skill-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .skill-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 8px;
+    border: 2px solid #555;
+    background: #1a1a2e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .skill-icon.ready {
+    border-color: #ff8800;
+    box-shadow: 0 0 10px rgba(255,136,0,0.5);
+  }
+
+  .skill-icon.cooldown {
+    border-color: #333;
+    opacity: 0.6;
+  }
+
+  .skill-icon .cd-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+    pointer-events: none;
+  }
+
+  .skill-key {
+    font-size: 10px;
+    color: #666;
+    letter-spacing: 1px;
+    font-family: 'Courier New', monospace;
+  }
+</style>
+</head>
+<body>
+
+<div id="game-title">&#9876; 格斗游戏 &#9876;</div>
+
+<div id="game-wrap">
+  <canvas id="gameCanvas" width="900" height="480"></canvas>
+
+  <div id="hud">
+    <div class="player-hud">
+      <div class="player-name">&#128293; 拳皇 (玩家1)</div>
+      <div class="hp-bar-wrap">
+        <div class="hp-bar" id="p1-hp-bar" style="width:100%"></div>
+        <div class="hp-text" id="p1-hp-text">100</div>
+      </div>
+    </div>
+
+    <div id="center-hud">
+      <div id="timer">60</div>
+      <div id="round-display">第 1 局</div>
+    </div>
+
+    <div class="player-hud right">
+      <div class="player-name">&#128163; 炸弹人 (玩家2)</div>
+      <div class="hp-bar-wrap">
+        <div class="hp-bar" id="p2-hp-bar" style="width:100%"></div>
+        <div class="hp-text" id="p2-hp-text">100</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="overlay" style="display:none"></div>
+</div>
+
+<div id="controls-hint">
+  玩家1: A← / D→ / S蹲下 / W跳跃 / Q挥拳攻击(近战-3伤害) / 1冲撞技能(20伤害)<br>
+  玩家2: B→ / M← / N蹲下 / J跳跃 / H投掷炸弹(远程-2伤害)
+</div>
+
+<div id="skill-bar">
+  <div class="skill-slot">
+    <div class="skill-icon ready" id="p1-skill1-icon">
+      <span>&#9889;</span>
+      <div class="cd-overlay" id="p1-skill1-cd" style="display:none">9</div>
+    </div>
+    <div class="skill-key">E</div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  常量
+// ═══════════════════════════════════════════════════════════════
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+const GROUND_Y = H - 80;
+const GRAVITY = 0.55;
+const JUMP_VY = -13;
+const MAX_HP = 100;
+
+// ═══════════════════════════════════════════════════════════════
+//  粒子
+// ═══════════════════════════════════════════════════════════════
+let particles = [];
+
+function spawnParticles(x, y, color, count = 8) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * 4 + 1;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 2,
+      life: 1,
+      decay: 0.04 + Math.random() * 0.04,
+      size: Math.random() * 5 + 2,
+      color
+    });
+  }
+}
+
+function updateParticles() {
+  particles = particles.filter(p => p.life > 0);
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.12;
+    p.life -= p.decay; p.size *= 0.97;
+  });
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  炸弹系统
+// ═══════════════════════════════════════════════════════════════
+let bombs = [];
+
+class Bomb {
+  constructor(x, y, direction, owner) {
+    this.x = x;
+    this.y = y;
+    this.vx = direction * 7;
+    this.vy = -3;
+    this.owner = owner;
+    this.alive = true;
+    this.radius = 10;
+    this.trail = [];
+    this.fuseTimer = 0;
+  }
+
+  update() {
+    this.trail.push({ x: this.x, y: this.y, life: 1 });
+    this.trail = this.trail.filter(t => t.life > 0);
+    this.trail.forEach(t => t.life -= 0.12);
+
+    this.vy += 0.18;
+    this.x += this.vx;
+    this.y += this.vy;
+    this.fuseTimer++;
+
+    // 碰到地面爆炸
+    if (this.y >= GROUND_Y + 10) {
+      this.explode();
+    }
+    // 碰到玩家爆炸
+    const target = this.owner === p1 ? p2 : p1;
+    const dx = this.x - target.cx;
+    const dy = this.y - target.cy;
+    if (Math.abs(dx) < target.w / 2 + this.radius && Math.abs(dy) < target.h / 2 + this.radius) {
+      this.explode();
+    }
+    // 出界
+    if (this.x < -20 || this.x > W + 20 || this.y > H + 20) {
+      this.alive = false;
+    }
+  }
+
+  explode() {
+    this.alive = false;
+    const ex = this.x, ey = this.y;
+    spawnParticles(ex, ey, '#ff8800', 20);
+    spawnParticles(ex, ey, '#ffdd00', 12);
+    addEffect('explosion', ex, ey);
+    triggerShake(6);
+
+    const target = this.owner === p1 ? p2 : p1;
+    const dx = this.x - target.cx;
+    const dy = this.y - target.cy;
+    if (Math.abs(dx) < target.w / 2 + 280 && Math.abs(dy) < target.h / 2 + 280) {
+      const dmg = 2;
+      target.takeDamage(dmg);
+      // 根据炸弹位置设置击退方向（炸到哪边就往哪边推）
+      target.knockbackDir = dx > 0 ? 1 : -1;
+      addDmgNum(target.cx + (Math.random() - 0.5) * 20, target.y - 10, dmg);
+      hitFlashTimer = 4;
+    }
+  }
+
+  draw() {
+    // 尾迹
+    this.trail.forEach(t => {
+      ctx.save();
+      ctx.globalAlpha = t.life * 0.4;
+      ctx.fillStyle = '#ff8800';
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+
+    // 炸弹本体
+    ctx.save();
+    const pulse = Math.sin(this.fuseTimer * 0.4) * 0.2 + 0.8;
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // 引线闪光
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = '#ff4400';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y - this.radius - 3, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 高光
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = '#888';
+    ctx.beginPath();
+    ctx.arc(this.x - 3, this.y - 3, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  特效
+// ═══════════════════════════════════════════════════════════════
+let effects = [];
+
+function addEffect(type, x, y, color = '#fff') {
+  effects.push({ type, x, y, color, life: 1, frame: 0 });
+}
+
+function updateEffects() {
+  effects = effects.filter(e => e.life > 0);
+  effects.forEach(e => { e.life -= 0.06; e.frame++; });
+}
+
+function drawEffects() {
+  effects.forEach(e => {
+    ctx.save();
+    ctx.globalAlpha = e.life;
+    if (e.type === 'hit') {
+      const r = (1 - e.life) * 50 + 10;
+      ctx.strokeStyle = e.color;
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(e.x, e.y, r, 0, Math.PI * 2); ctx.stroke();
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2 + e.frame * 0.15;
+        ctx.beginPath();
+        ctx.moveTo(e.x + Math.cos(a) * r * 0.5, e.y + Math.sin(a) * r * 0.5);
+        ctx.lineTo(e.x + Math.cos(a) * r * 1.1, e.y + Math.sin(a) * r * 1.1);
+        ctx.stroke();
+      }
+    } else if (e.type === 'explosion') {
+      const r = (1 - e.life) * 80 + 20;
+      const grad = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, r);
+      grad.addColorStop(0, '#ffffffaa');
+      grad.addColorStop(0.3, '#ff8800aa');
+      grad.addColorStop(0.7, '#ff440066');
+      grad.addColorStop(1, '#ff440000');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(e.x, e.y, r, 0, Math.PI * 2); ctx.fill();
+    } else if (e.type === 'block') {
+      ctx.fillStyle = '#aad4ff';
+      ctx.font = 'bold 16px Courier New';
+      ctx.fillText('格挡!', e.x - 24, e.y);
+    }
+    ctx.restore();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  伤害数字
+// ═══════════════════════════════════════════════════════════════
+let dmgNums = [];
+
+function addDmgNum(x, y, dmg, color = '#ff4444') {
+  dmgNums.push({ x, y, dmg, color, life: 1, vy: -1.5 });
+}
+
+function updateDmgNums() {
+  dmgNums = dmgNums.filter(d => d.life > 0);
+  dmgNums.forEach(d => {
+    d.life -= 0.025;
+    d.y += d.vy;
+    d.x += (Math.random() - 0.5) * 0.5;
+  });
+}
+
+function drawDmgNums() {
+  dmgNums.forEach(d => {
+    ctx.save();
+    ctx.globalAlpha = d.life;
+    ctx.fillStyle = d.color;
+    ctx.font = `bold ${20 + Math.floor((1 - d.life) * 8)}px Courier New`;
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
+    ctx.strokeText(`-${d.dmg}`, d.x, d.y);
+    ctx.fillText(`-${d.dmg}`, d.x, d.y);
+    ctx.restore();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  玩家类
+// ═══════════════════════════════════════════════════════════════
+class Fighter {
+  constructor(x, faceRight, config) {
+    this.x = x;
+    this.y = GROUND_Y;
+    this.vy = 0;
+    this.faceRight = faceRight;
+    this.config = config;
+
+    this.hp = MAX_HP;
+    this.maxHp = MAX_HP;
+
+    this.w = 52;
+    this.h = 80;
+
+    this.state = 'idle'; // idle, walk, jump, crouch, attack, hurt, ko
+    this.stateTimer = 0;
+    this.attackCooldown = 0;
+    this.hurtTimer = 0;
+    this.knockbackDir = 0;  // 击退方向：-1左，1右，0使用默认
+    this.onGround = true;
+    this.blocking = false;
+
+    this.keys = {};
+    this.hitThisAttack = false;
+    this.comboCount = 0;
+    this.comboTimer = 0;
+
+    this.animTimer = 0;
+    this.frameAnim = 0;
+
+    // 挥拳动画
+    this.punchProgress = 0; // 0-1 挥拳进度
+    this.isPunching = false;
+
+    // 一技能：冲撞
+    this.skill1Cooldown = 0;       // 冷却帧数（9秒 = 540帧）
+    this.skill1Dashing = false;    // 是否正在冲撞
+    this.skill1DashTimer = 0;      // 冲撞持续帧数
+    this.skill1HitThisDash = false; // 冲撞是否已命中
+    this.isSkill1 = false;         // 是否处于技能状态
+  }
+
+  get cx() { return this.x + this.w / 2; }
+  get cy() {
+    if (this.state === 'crouch') return this.y + this.h * 0.7;
+    return this.y + this.h / 2;
+  }
+  get hitbox() {
+    if (this.state === 'crouch') {
+      return { x: this.x, y: this.y + this.h * 0.3, w: this.w, h: this.h * 0.7 };
+    }
+    return { x: this.x, y: this.y, w: this.w, h: this.h };
+  }
+
+  takeDamage(dmg) {
+    if (this.state === 'ko') return;
+    this.hp = Math.max(0, this.hp - dmg);
+    this.hurtTimer = 15;
+    this.state = 'hurt';
+    if (this.hp <= 0) { this.state = 'ko'; this.hp = 0; }
+  }
+
+  move(enemy) {
+    const cfg = this.config;
+    const keys = this.keys;
+
+    if (this.stateTimer > 0) this.stateTimer--;
+    if (this.attackCooldown > 0) this.attackCooldown--;
+    if (this.hurtTimer > 0) this.hurtTimer--;
+    if (this.comboTimer > 0) this.comboTimer--;
+    else if (this.comboTimer === 0) this.comboCount = 0;
+
+    this.animTimer++;
+    if (this.animTimer > 7) { this.animTimer = 0; this.frameAnim = (this.frameAnim + 1) % 4; }
+
+    if (this.state === 'ko') return;
+    if (this.hurtTimer > 0) {
+      this.state = 'hurt';
+      // 使用指定的击退方向，否则使用默认方向（面向方向的反方向）
+      const knockDir = this.knockbackDir !== 0 ? this.knockbackDir : (this.faceRight ? -1 : 1);
+      this.x += knockDir * 2;
+      this.x = Math.max(0, Math.min(W - this.w, this.x));
+      this.knockbackDir = 0;  // 重置击退方向
+      return;
+    }
+
+    // 蹲下
+    if (keys[cfg.crouch] && this.onGround) {
+      this.state = 'crouch';
+      this.attackCooldown = 0;
+      return;
+    }
+
+    // 攻击中
+    if (this.stateTimer > 0 && this.isAttacking()) return;
+
+    // 攻击
+    if (keys[cfg.attack] && this.attackCooldown === 0 && this.state !== 'crouch') {
+      this.state = 'attack';
+      this.stateTimer = 22;
+      this.attackCooldown = 28;
+      this.hitThisAttack = false;
+      this.punchProgress = 0;
+      return;
+    }
+
+    // 跳跃
+    if (keys[cfg.jump] && this.onGround) {
+      this.vy = JUMP_VY;
+      this.onGround = false;
+      this.state = 'jump';
+    }
+
+    // 冷却递减
+    if (this.skill1Cooldown > 0) this.skill1Cooldown--;
+
+    // 一技能：冲撞（9秒冷却 = 540帧）
+    if (this.skill1Dashing) {
+      // 冲撞中：持续向前冲刺
+      const dashDir = this.faceRight ? 1 : -1;
+      this.x += dashDir * 8;  // 降低速度，避免穿透
+      this.x = Math.max(0, Math.min(W - this.w, this.x));
+      this.skill1DashTimer--;
+      if (this.skill1DashTimer <= 0) {
+        this.skill1Dashing = false;
+        this.isSkill1 = false;
+        this.skill1Cooldown = 540; // 9秒冷却
+        // 冲撞结束后，确保不与敌人重叠
+        if (rectsOverlap(this.hitbox, enemy.hitbox)) {
+          const dir = (this.cx < enemy.cx) ? 1 : -1;
+          this.x -= dir * 5;
+        }
+      }
+      return; // 冲撞中不能做其他事
+    }
+
+    // 激活一技能 - 添加多重保护
+    if (keys[cfg.skill1] && this.skill1Cooldown === 0 && !this.skill1Dashing && 
+        this.state !== 'ko' && this.state !== 'crouch' && this.hurtTimer === 0 && 
+        this.state !== 'attack' && this.state !== 'skill1') {
+      this.state = 'skill1';
+      this.isSkill1 = true;
+      this.skill1Dashing = true;
+      this.skill1DashTimer = 15; // 冲撞持续约0.25秒
+      this.skill1HitThisDash = false;
+      spawnParticles(this.cx, this.cy, '#ff8800', 15);
+      return;
+    }
+
+    // 移动（不攻击时）
+    let moving = false;
+    if (keys[cfg.left]) {
+      this.x = Math.max(0, this.x - 4);
+      moving = true;
+    }
+    if (keys[cfg.right]) {
+      this.x = Math.min(W - this.w, this.x + 4);
+      moving = true;
+    }
+
+    // 朝向敌人
+    if (this.cx < enemy.cx) this.faceRight = true;
+    else this.faceRight = false;
+
+    if (this.onGround) {
+      this.state = moving ? 'walk' : 'idle';
+    }
+  }
+
+  applyGravity() {
+    this.vy += GRAVITY;
+    this.y += this.vy;
+    if (this.y >= GROUND_Y) {
+      this.y = GROUND_Y;
+      this.vy = 0;
+      this.onGround = true;
+      if (this.state === 'jump') this.state = 'idle';
+    }
+  }
+
+  isAttacking() {
+    return this.state === 'attack';
+  }
+
+  getPunchHitbox() {
+    if (!this.isAttacking()) return null;
+    if (this.stateTimer < 8 || this.stateTimer > 16) return null;
+    const dir = this.faceRight ? 1 : -1;
+    const reach = 55;
+    return {
+      x: this.faceRight ? this.x + this.w : this.x - reach,
+      y: this.cy - 20,
+      w: reach,
+      h: 40,
+      dmg: 4
+    };
+  }
+
+  draw() {
+    const x = this.x;
+    const cfg = this.config;
+    const cx = x + this.w / 2;
+    let y = this.y;
+    let h = this.h;
+    let w = this.w;
+
+    ctx.save();
+    if (!this.faceRight) {
+      ctx.translate(cx * 2, 0);
+      ctx.scale(-1, 1);
+    }
+
+    // 蹲下缩小
+    const crouchScale = this.state === 'crouch' ? 0.6 : 1;
+    const crouchOffset = this.state === 'crouch' ? this.h * 0.4 : 0;
+
+    // 阴影
+    ctx.save();
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(cx, GROUND_Y + h, w * 0.5, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    const bodyBob = this.state === 'idle' ? Math.sin(this.animTimer * 0.25) * 1.5 : 0;
+    const legSwing = this.state === 'walk' ? Math.sin(this.animTimer * 0.5) * 10 : 0;
+
+    // 状态颜色
+    let bodyColor = cfg.color;
+    let outlineColor = cfg.outline;
+    if (this.state === 'hurt') { bodyColor = '#fff'; outlineColor = '#fff'; }
+    if (this.state === 'ko') { bodyColor = '#444'; outlineColor = '#222'; }
+
+    // 蹲下裁剪
+    ctx.save();
+    if (this.state === 'crouch') {
+      ctx.beginPath();
+      ctx.rect(x - 5, y + crouchOffset, w + 10, h - crouchOffset + 5);
+      ctx.clip();
+    }
+
+    // 腿
+    ctx.fillStyle = cfg.pantsColor;
+    ctx.strokeStyle = outlineColor;
+    ctx.lineWidth = 1.5;
+    ctx.save();
+    ctx.translate(cx - 10, y + h * 0.6 + bodyBob - crouchOffset);
+    ctx.rotate(legSwing * 0.04);
+    ctx.fillRect(-7, 0, 14, h * 0.4);
+    ctx.fillStyle = '#222';
+    ctx.fillRect(-9, h * 0.4 - 4, 18, 9);
+    ctx.restore();
+    ctx.save();
+    ctx.translate(cx + 10, y + h * 0.6 + bodyBob - crouchOffset);
+    ctx.rotate(-legSwing * 0.04);
+    ctx.fillStyle = cfg.pantsColor;
+    ctx.fillRect(-7, 0, 14, h * 0.4);
+    ctx.fillStyle = '#222';
+    ctx.fillRect(-9, h * 0.4 - 4, 18, 9);
+    ctx.restore();
+
+    // 身体
+    ctx.fillStyle = bodyColor;
+    ctx.strokeStyle = outlineColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(x + 6, y + h * 0.3 + bodyBob - crouchOffset, w - 12, h * 0.38, 5);
+    ctx.fill(); ctx.stroke();
+
+    // 腰带
+    ctx.fillStyle = cfg.beltColor;
+    ctx.fillRect(x + 6, y + h * 0.6 + bodyBob - 4 - crouchOffset, w - 12, 6);
+
+    // 手臂
+    let armAngle = 0;
+    let punchExtend = 0;
+
+    if (this.state === 'attack') {
+      const progress = 1 - (this.stateTimer / 22);
+      if (progress < 0.5) {
+        punchExtend = progress * 2 * 50; // 伸出
+      } else {
+        punchExtend = (1 - progress) * 2 * 50; // 收回
+      }
+      armAngle = punchExtend * 0.01;
+    }
+
+    // 前臂（挥拳臂）
+    ctx.save();
+    ctx.translate(x + w - 10, y + h * 0.35 + bodyBob - crouchOffset);
+    ctx.rotate(armAngle * 0.5);
+    ctx.fillStyle = bodyColor;
+    ctx.strokeStyle = outlineColor;
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(-6, 0, 12, h * 0.28);
+    ctx.strokeRect(-6, 0, 12, h * 0.28);
+    // 拳头
+    const fistY = h * 0.28 + punchExtend * 0.5;
+    ctx.fillStyle = cfg.skinColor;
+    ctx.beginPath();
+    ctx.ellipse(0, fistY, 10, 9, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    // 挥拳光效
+    if (this.state === 'attack') {
+      ctx.globalAlpha = 0.4 + Math.sin(Date.now() * 0.03) * 0.2;
+      ctx.fillStyle = '#ffff44';
+      ctx.beginPath();
+      ctx.ellipse(0, fistY, 16 + punchExtend * 0.15, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.ellipse(0, fistY, 10, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // 后臂
+    ctx.save();
+    ctx.translate(x + 10, y + h * 0.35 + bodyBob - crouchOffset);
+    ctx.rotate(-armAngle * 0.4);
+    ctx.fillStyle = bodyColor;
+    ctx.strokeStyle = outlineColor;
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(-6, 0, 12, h * 0.28);
+    ctx.strokeRect(-6, 0, 12, h * 0.28);
+    ctx.fillStyle = cfg.skinColor;
+    ctx.beginPath();
+    ctx.arc(0, h * 0.28, 8, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+
+    // 头部
+    const headY = y + h * 0.15 + bodyBob - crouchOffset;
+    ctx.fillStyle = cfg.skinColor;
+    ctx.strokeStyle = outlineColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(cx, headY, 15, 17, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+
+    // 发型
+    ctx.fillStyle = cfg.hairColor;
+    if (cfg.hairStyle === 'spiky') {
+      for (let i = 0; i < 5; i++) {
+        const a = -Math.PI * 0.9 + i * 0.35;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(a) * 13, headY + Math.sin(a) * 15);
+        ctx.lineTo(cx + Math.cos(a) * 24, headY + Math.sin(a) * 26);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.arc(cx, headY - 2, 13, -Math.PI, 0);
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.arc(cx, headY - 2, 15, -Math.PI, 0);
+      ctx.fill();
+      ctx.fillRect(cx - 15, headY - 7, 30, 9);
+    }
+
+    // 眼睛
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.ellipse(cx + 4, headY - 1, 4, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = cfg.eyeColor;
+    ctx.beginPath();
+    ctx.arc(cx + 5.5, headY, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 嘴巴
+    if (this.state === 'attack') {
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, headY + 7); ctx.lineTo(cx + 7, headY + 7);
+      ctx.stroke();
+    } else if (this.state === 'hurt' || this.state === 'ko') {
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(cx + 3, headY + 8, 4, 0, Math.PI);
+      ctx.stroke();
+    }
+
+    ctx.restore(); // crouch clip
+
+    // HP低闪烁
+    if (this.hp < 25 && this.hp > 0) {
+      ctx.globalAlpha = (Math.sin(Date.now() * 0.015) * 0.3 + 0.3) * 0.35;
+      ctx.fillStyle = '#ff0000';
+      ctx.fillRect(x, y, w, this.state === 'crouch' ? this.h * 0.6 : h);
+      ctx.globalAlpha = 1;
+    }
+
+    // 冲撞特效
+    if (this.skill1Dashing) {
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = '#ff8800';
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, w * 1.2, h * 0.7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = '#ffcc00';
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, w * 0.8, h * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.restore();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  背景
+// ═══════════════════════════════════════════════════════════════
+function drawBackground(time) {
+  // 天空
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+  skyGrad.addColorStop(0, '#0a0018');
+  skyGrad.addColorStop(0.5, '#180030');
+  skyGrad.addColorStop(1, '#2a0050');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // 月亮
+  ctx.fillStyle = '#fffde0';
+  ctx.beginPath(); ctx.arc(760, 55, 32, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#180030';
+  ctx.beginPath(); ctx.arc(770, 50, 27, 0, Math.PI * 2); ctx.fill();
+
+  // 星星
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  [[50,30],[130,55],[210,18],[360,45],[510,22],[620,40],[810,30],[850,75],[110,90],[310,75],[710,65]].forEach(([sx,sy]) => {
+    ctx.globalAlpha = Math.sin(time * 0.003 + sx) * 0.3 + 0.7;
+    ctx.fillRect(sx, sy, 2, 2);
+  });
+  ctx.globalAlpha = 1;
+
+  // 远景建筑
+  ctx.fillStyle = '#0c0020';
+  [[50,180,50,200],[160,155,42,200],[230,190,38,200],[610,165,48,200],[690,182,58,200],[780,158,42,200]].forEach(([bx,by,bw,bh]) => {
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.fillStyle = 'rgba(255,200,80,0.25)';
+    for (let wy = by + 10; wy < by + bh - 15; wy += 16) {
+      for (let wx = bx + 5; wx < bx + bw - 5; wx += 11) {
+        if (Math.random() > 0.35) ctx.fillRect(wx, wy, 5, 7);
+      }
+    }
+    ctx.fillStyle = '#0c0020';
+  });
+
+  // 霓虹条
+  ['#ff0066', '#00ffcc', '#ff6600', '#00ff66'].forEach((nc, i) => {
+    ctx.save();
+    ctx.globalAlpha = 0.15 + Math.sin(time * 0.002 + i) * 0.05;
+    ctx.strokeStyle = nc; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(70 + i * 185, 200); ctx.lineTo(110 + i * 185, 200);
+    ctx.stroke();
+    ctx.restore();
+  });
+
+  // 地面
+  const groundGrad = ctx.createLinearGradient(0, GROUND_Y, 0, H);
+  groundGrad.addColorStop(0, '#150030');
+  groundGrad.addColorStop(0.3, '#0a0020');
+  groundGrad.addColorStop(1, '#060012');
+  ctx.fillStyle = groundGrad;
+  ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+
+  ctx.strokeStyle = 'rgba(120,0,255,0.25)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, GROUND_Y); ctx.lineTo(W, GROUND_Y); ctx.stroke();
+
+  // 地面砖
+  ctx.strokeStyle = 'rgba(80,0,180,0.18)';
+  ctx.lineWidth = 0.5;
+  for (let gx = 0; gx < W; gx += 38) {
+    ctx.beginPath(); ctx.moveTo(gx, GROUND_Y); ctx.lineTo(gx, H); ctx.stroke();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  玩家配置
+// ═══════════════════════════════════════════════════════════════
+const p1Config = {
+  left: 'a', right: 'd', jump: 'w', crouch: 's', attack: 'q', skill1: 'e',
+  color: '#e74c3c',
+  outline: '#a93226',
+  skinColor: '#f5cba7',
+  hairColor: '#222',
+  hairStyle: 'spiky',
+  pantsColor: '#1a1a2e',
+  beltColor: '#e67e22',
+  eyeColor: '#8b0000',
+};
+
+const p2Config = {
+  left: 'm', right: 'b', jump: 'j', crouch: 'n', attack: 'h',
+  color: '#3498db',
+  outline: '#2471a3',
+  skinColor: '#fadbd8',
+  hairColor: '#8B6914',
+  hairStyle: 'short',
+  pantsColor: '#17202a',
+  beltColor: '#27ae60',
+  eyeColor: '#1a6ca8',
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  游戏状态
+// ═══════════════════════════════════════════════════════════════
+let p1, p2;
+let gameTime, gameOver, winner, roundNum, frameCount;
+let hitFlashTimer = 0;
+let screenShakeX = 0, screenShakeY = 0;
+let announceText = '', announceTimer = 0;
+
+// ═══════════════════════════════════════════════════════════════
+//  键盘
+// ═══════════════════════════════════════════════════════════════
+const pressedKeys = {};
+
+document.addEventListener('keydown', e => {
+  pressedKeys[e.key] = true;
+  pressedKeys[e.key.toLowerCase()] = true;
+  e.preventDefault();
+});
+
+document.addEventListener('keyup', e => {
+  pressedKeys[e.key] = false;
+  pressedKeys[e.key.toLowerCase()] = false;
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  碰撞
+// ═══════════════════════════════════════════════════════════════
+function rectsOverlap(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+function triggerShake(strength) {
+  screenShakeX = (Math.random() - 0.5) * strength;
+  screenShakeY = (Math.random() - 0.5) * strength;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  HUD
+// ═══════════════════════════════════════════════════════════════
+function updateHUD() {
+  const p1hp = Math.max(0, p1.hp);
+  const p2hp = Math.max(0, p2.hp);
+  document.getElementById('p1-hp-bar').style.width = p1hp + '%';
+  document.getElementById('p2-hp-bar').style.width = p2hp + '%';
+  document.getElementById('p1-hp-text').textContent = p1hp;
+  document.getElementById('p2-hp-text').textContent = p2hp;
+  document.getElementById('timer').textContent = Math.ceil(gameTime);
+  document.getElementById('round-display').textContent = '第 ' + roundNum + ' 局';
+
+  const p1bar = document.getElementById('p1-hp-bar');
+  const p2bar = document.getElementById('p2-hp-bar');
+  if (p1hp < 25) p1bar.style.background = 'linear-gradient(90deg,#c0392b,#e74c3c)';
+  else p1bar.style.background = 'linear-gradient(90deg,#e74c3c,#ff6b35)';
+  if (p2hp < 25) p2bar.style.background = 'linear-gradient(270deg,#c0392b,#e74c3c)';
+  else p2bar.style.background = 'linear-gradient(270deg,#3498db,#2ecc71)';
+
+  // 技能1冷却图标更新
+  const cdIcon = document.getElementById('p1-skill1-icon');
+  const cdOverlay = document.getElementById('p1-skill1-cd');
+  if (p1.skill1Cooldown > 0) {
+    cdIcon.className = 'skill-icon cooldown';
+    const seconds = Math.ceil(p1.skill1Cooldown / 60);
+    cdOverlay.style.display = 'flex';
+    cdOverlay.textContent = seconds;
+  } else {
+    cdIcon.className = 'skill-icon ready';
+    cdOverlay.style.display = 'none';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  初始化
+// ═══════════════════════════════════════════════════════════════
+function initGame() {
+  p1 = new Fighter(130, true, p1Config);
+  p2 = new Fighter(700, false, p2Config);
+  gameTime = 60;
+  gameOver = false;
+  winner = null;
+  roundNum = 1;
+  frameCount = 0;
+  particles = [];
+  effects = [];
+  dmgNums = [];
+  bombs = [];
+  hitFlashTimer = 0;
+  screenShakeX = 0;
+  screenShakeY = 0;
+  announceText = 'FIGHT!';
+  announceTimer = 90;
+  document.getElementById('overlay').style.display = 'none';
+  updateHUD();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  主更新
+// ═══════════════════════════════════════════════════════════════
+function update() {
+  if (gameOver) return;
+
+  frameCount++;
+  p1.keys = pressedKeys;
+  p2.keys = pressedKeys;
+
+  // 倒计时
+  if (frameCount % 60 === 0 && gameTime > 0) {
+    gameTime--;
+    if (gameTime <= 0) {
+      gameTime = 0;
+      if (p1.hp > p2.hp) endGame('拳皇', '时间到！玩家1胜！');
+      else if (p2.hp > p1.hp) endGame('炸弹人', '时间到！玩家2胜！');
+      else endGame(null, '平局！');
+      return;
+    }
+  }
+
+  // 玩家移动
+  p1.move(p2);
+  p2.move(p1);
+  p1.applyGravity();
+  p2.applyGravity();
+
+  // 边界
+  p1.x = Math.max(0, Math.min(W - p1.w, p1.x));
+  p2.x = Math.max(0, Math.min(W - p2.w, p2.x));
+
+  // 互相推开（重叠保护）- 冲撞期间不执行，避免冲突
+  if (!p1.skill1Dashing && !p2.skill1Dashing) {
+    const p1Box = p1.hitbox;
+    const p2Box = p2.hitbox;
+    if (rectsOverlap(p1Box, p2Box)) {
+      const dir = (p1.cx < p2.cx) ? 1 : -1;
+      p1.x -= dir * 2;
+      p2.x += dir * 2;
+      // 边界限制
+      p1.x = Math.max(0, Math.min(W - p1.w, p1.x));
+      p2.x = Math.max(0, Math.min(W - p2.w, p2.x));
+    }
+  }
+
+  // P1 挥拳命中检测
+  if (p1.isAttacking() && !p1.hitThisAttack) {
+    const abox = p1.getPunchHitbox();
+    if (abox) {
+      const dbox = p2.hitbox;
+      if (rectsOverlap(abox, dbox)) {
+        p1.hitThisAttack = true;
+        p2.takeDamage(abox.dmg);
+        // 根据P1位置设置击退方向
+        p2.knockbackDir = p1.cx < p2.cx ? 1 : -1;
+        spawnParticles((p1.cx + p2.cx) / 2, (p1.cy + p2.cy) / 2, '#ffff44', 10);
+        addEffect('hit', (p1.cx + p2.cx) / 2, (p1.cy + p2.cy) / 2, '#ffff44');
+        addDmgNum(p2.cx + (Math.random() - 0.5) * 20, p2.y - 10, abox.dmg);
+        triggerShake(5);
+        hitFlashTimer = 4;
+        p1.comboCount++;
+        p1.comboTimer = 120;
+      }
+    }
+  }
+
+  // P1 冲撞技能伤害检测
+  if (p1.skill1Dashing && !p1.skill1HitThisDash) {
+    const dbox = p2.hitbox;
+    const sbox = p1.hitbox;
+    if (rectsOverlap(sbox, dbox)) {
+      p1.skill1HitThisDash = true;
+      p2.takeDamage(20);
+      // 根据P1位置设置击退方向（P1在左则向右推，P1在右则向左推）
+      p2.knockbackDir = p1.cx < p2.cx ? 1 : -1;
+      spawnParticles((p1.cx + p2.cx) / 2, (p1.cy + p2.cy) / 2, '#ff8800', 20);
+      addEffect('hit', (p1.cx + p2.cx) / 2, (p1.cy + p2.cy) / 2, '#ff8800');
+      addDmgNum(p2.cx + (Math.random() - 0.5) * 20, p2.y - 10, 20, '#ff8800');
+      triggerShake(10);
+      hitFlashTimer = 6;
+      p1.comboCount++;
+      p1.comboTimer = 120;
+    }
+  }
+
+  // 冲撞拖尾粒子
+  if (p1.skill1Dashing && frameCount % 2 === 0) {
+    spawnParticles(p1.cx, p1.cy, '#ff6600', 3);
+  }
+
+  // P2 投掷炸弹
+  if (p2.isAttacking() && !p2.hitThisAttack && p2.stateTimer === 20) {
+    p2.hitThisAttack = true;
+    const dir = p2.faceRight ? 1 : -1;
+    const bx = p2.cx + dir * 20;
+    const by = p2.cy - 10;
+    bombs.push(new Bomb(bx, by, dir, p2));
+    spawnParticles(bx, by, '#ff8800', 6);
+  }
+
+  // 更新炸弹
+  bombs.forEach(b => b.update());
+  bombs = bombs.filter(b => b.alive);
+
+  // 震动
+  screenShakeX *= 0.8;
+  screenShakeY *= 0.8;
+  if (hitFlashTimer > 0) hitFlashTimer--;
+  if (announceTimer > 0) announceTimer--;
+
+  updateParticles();
+  updateEffects();
+  updateDmgNums();
+  updateHUD();
+
+  // 胜负
+  if (p1.state === 'ko' && !gameOver) {
+    endGame('炸弹人', '玩家2 获胜！');
+  } else if (p2.state === 'ko' && !gameOver) {
+    endGame('拳皇', '玩家1 获胜！');
+  }
+}
+
+function endGame(winnerName, msg) {
+  gameOver = true;
+  winner = winnerName;
+  const overlay = document.getElementById('overlay');
+  overlay.innerHTML = `
+    <h2>${winnerName ? winnerName + ' 胜利！' : '平局！'}</h2>
+    <p>${msg}</p>
+    <button id="restart-btn" onclick="initGame()">再来一局</button>
+  `;
+  overlay.style.display = 'flex';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  绘制
+// ═══════════════════════════════════════════════════════════════
+function draw() {
+  ctx.save();
+  ctx.translate(Math.round(screenShakeX), Math.round(screenShakeY));
+  drawBackground(frameCount);
+
+  p1.draw();
+  p2.draw();
+
+  bombs.forEach(b => b.draw());
+
+  drawParticles();
+  drawEffects();
+  drawDmgNums();
+
+  // 连击
+  if (p1.comboCount >= 2) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, p1.comboTimer / 30);
+    ctx.fillStyle = '#ffdd00';
+    ctx.font = 'bold 20px Courier New';
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
+    const ct = p1.comboCount + ' 连击!';
+    ctx.strokeText(ct, p1.cx - 40, p1.y - 20);
+    ctx.fillText(ct, p1.cx - 40, p1.y - 20);
+    ctx.restore();
+  }
+  if (p2.comboCount >= 2) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, p2.comboTimer / 30);
+    ctx.fillStyle = '#44ddff';
+    ctx.font = 'bold 20px Courier New';
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
+    const ct = p2.comboCount + ' 连击!';
+    ctx.strokeText(ct, p2.cx - 40, p2.y - 20);
+    ctx.fillText(ct, p2.cx - 40, p2.y - 20);
+    ctx.restore();
+  }
+
+  // 公告
+  if (announceTimer > 0) {
+    ctx.save();
+    const alpha = announceTimer > 30 ? 1 : announceTimer / 30;
+    ctx.globalAlpha = alpha;
+    const scale = announceTimer > 60 ? 1 + (90 - announceTimer) * 0.02 : 1;
+    ctx.translate(W / 2, H / 2 - 20);
+    ctx.scale(scale, scale);
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 50px Courier New';
+    ctx.textAlign = 'center';
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 5;
+    ctx.strokeText(announceText, 0, 0);
+    ctx.fillText(announceText, 0, 0);
+    ctx.restore();
+  }
+
+  // 命中闪光
+  if (hitFlashTimer > 0) {
+    ctx.save();
+    ctx.globalAlpha = hitFlashTimer * 0.07;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  游戏循环
+// ═══════════════════════════════════════════════════════════════
+let lastUpdateTime = Date.now();
+let gameLoopFrame = 0;
+
+function gameLoop() {
+  try {
+    const now = Date.now();
+    // 保护：如果update超过100ms没响应，强制跳过
+    if (now - lastUpdateTime < 200) {
+      update();
+      draw();
+    } else {
+      // 超时保护：强制重置状态
+      lastUpdateTime = now;
+      draw(); // 至少保证能绘制
+    }
+    gameLoopFrame++;
+    // 保护：每1000帧强制检查一次状态
+    if (gameLoopFrame % 1000 === 0) {
+      forceConsistencyCheck();
+    }
+  } catch (e) {
+    console.error('游戏循环错误:', e);
+    // 出错时强制重置冲撞状态
+    if (p1) { p1.skill1Dashing = false; p1.skill1Cooldown = Math.max(0, p1.skill1Cooldown); }
+    if (p2) { p2.skill1Dashing = false; }
+    draw(); // 尝试继续绘制
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+// 强制一致性检查
+function forceConsistencyCheck() {
+  if (!p1 || !p2) return;
+  // 确保位置有效
+  p1.x = Math.max(0, Math.min(W - p1.w, p1.x || 0));
+  p2.x = Math.max(0, Math.min(W - p2.w, p2.x || 0));
+  p1.y = Math.max(GROUND_Y - 150, Math.min(GROUND_Y, p1.y || GROUND_Y));
+  p2.y = Math.max(GROUND_Y - 150, Math.min(GROUND_Y, p2.y || GROUND_Y));
+  // 确保HP有效
+  p1.hp = Math.max(0, Math.min(MAX_HP, p1.hp || MAX_HP));
+  p2.hp = Math.max(0, Math.min(MAX_HP, p2.hp || MAX_HP));
+  // 确保冲撞状态不异常
+  if (p1.skill1DashTimer > 30) p1.skill1DashTimer = 30;
+  if (p1.hurtTimer > 30) p1.hurtTimer = 30;
+  if (p2.hurtTimer > 30) p2.hurtTimer = 30;
+}
+
+initGame();
+gameLoop();
+</script>
+</body>
+</html>

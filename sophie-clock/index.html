@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>时钟工具箱</title>
+  <style>
+    :root {
+      --bg: #0f0f1a;
+      --surface: #1a1a2e;
+      --surface2: #16213e;
+      --card: #1e1e35;
+      --accent: #7c3aed;
+      --accent2: #a78bfa;
+      --accent3: #c4b5fd;
+      --teal: #0ea5e9;
+      --green: #10b981;
+      --orange: #f59e0b;
+      --red: #ef4444;
+      --pink: #ec4899;
+      --text: #f1f5f9;
+      --text2: #94a3b8;
+      --text3: #64748b;
+      --border: rgba(124, 58, 237, 0.2);
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .bg-gradient {
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 20%, rgba(124, 58, 237, 0.12) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(14, 165, 233, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(236, 72, 153, 0.05) 0%, transparent 60%);
+      pointer-events: none; z-index: 0;
+    }
+    .app { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 0 16px 40px; }
+    header { text-align: center; padding: 32px 0 24px; }
+    .logo { font-size: 13px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--accent2); margin-bottom: 8px; }
+    header h1 { font-size: clamp(28px, 5vw, 42px); font-weight: 800; background: linear-gradient(135deg, #fff 0%, var(--accent3) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -1px; line-height: 1.1; }
+    .nav { display: flex; justify-content: center; gap: 6px; margin: 24px 0 28px; padding: 6px; background: var(--surface); border-radius: 50px; border: 1px solid var(--border); width: fit-content; margin-left: auto; margin-right: auto; flex-wrap: wrap; }
+    .nav-btn { padding: 10px 22px; border-radius: 50px; border: none; background: transparent; color: var(--text2); font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.25s ease; white-space: nowrap; display: flex; align-items: center; gap: 7px; }
+    .nav-btn .icon { font-size: 16px; }
+    .nav-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .nav-btn.active { background: linear-gradient(135deg, var(--accent), #5b21b6); color: #fff; box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4); }
+    .panel { display: none; animation: fadeIn 0.3s ease; }
+    .panel.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow); backdrop-filter: blur(8px); }
+    .section-title { font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text3); margin-bottom: 20px; }
+    .time-display { font-size: clamp(52px, 10vw, 88px); font-weight: 800; letter-spacing: -2px; line-height: 1; font-variant-numeric: tabular-nums; text-align: center; }
+    .time-display .sep { color: var(--accent2); opacity: 0.6; }
+    .time-display .ms { font-size: 0.38em; color: var(--text2); vertical-align: bottom; padding-bottom: 10px; }
+    .btn-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+    .btn { padding: 12px 28px; border-radius: 50px; border: none; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; letter-spacing: 0.5px; }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:active { transform: translateY(0); }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), #5b21b6); color: #fff; box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35); }
+    .btn-secondary { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+    .btn-danger { background: linear-gradient(135deg, var(--red), #b91c1c); color: #fff; box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3); }
+    .btn-teal { background: linear-gradient(135deg, var(--teal), #0369a1); color: #fff; box-shadow: 0 4px 16px rgba(14, 165, 233, 0.3); }
+    .btn-green { background: linear-gradient(135deg, var(--green), #059669); color: #fff; box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3); }
+    .btn-orange { background: linear-gradient(135deg, var(--orange), #d97706); color: #fff; box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3); }
+    .btn-sm { padding: 8px 16px; font-size: 12px; }
+
+    /* ===== Theme Picker ===== */
+    .theme-toggle { position: fixed; top: 20px; left: 20px; z-index: 100; width: 40px; height: 40px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); color: var(--text2); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: var(--shadow); }
+    .theme-toggle:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .theme-panel { position: fixed; top: 0; left: -340px; width: 320px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); z-index: 200; transition: left 0.3s ease; display: flex; flex-direction: column; box-shadow: 8px 0 32px rgba(0,0,0,0.4); }
+    .theme-panel.open { left: 0; }
+    .theme-panel .drawer-header { border-bottom: 1px solid var(--border); }
+    .theme-body { flex: 1; overflow-y: auto; padding: 20px; }
+    .theme-section { margin-bottom: 24px; }
+    .theme-section-title { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
+    .theme-presets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px; }
+    .theme-swatch { width: 100%; aspect-ratio: 1; border-radius: 50%; border: 3px solid transparent; cursor: pointer; transition: all 0.2s; position: relative; }
+    .theme-swatch:hover { transform: scale(1.15); }
+    .theme-swatch.active { border-color: var(--accent); box-shadow: 0 0 10px rgba(124,58,237,0.5); }
+    .theme-swatch.active::after { content: '✓'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+    .theme-custom-row { display: flex; align-items: center; gap: 10px; }
+    .theme-color-input { width: 44px; height: 44px; border: 2px solid var(--border); border-radius: 10px; cursor: pointer; background: none; padding: 2px; }
+    .theme-color-input::-webkit-color-swatch-wrapper { padding: 0; }
+    .theme-color-input::-webkit-color-swatch { border: none; border-radius: 6px; }
+    .theme-color-label { font-size: 13px; color: var(--text2); font-weight: 600; }
+    .theme-reset-btn { width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface2); color: var(--text2); font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; margin-top: 8px; }
+    .theme-reset-btn:hover { border-color: var(--accent); color: var(--text); }
+
+    /* ===== History panel ===== */
+    .history-toggle { position: fixed; top: 20px; right: 20px; z-index: 100; width: 40px; height: 40px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); color: var(--text2); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: var(--shadow); }
+    .history-toggle:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .history-drawer { position: fixed; top: 0; right: -340px; width: 320px; height: 100vh; background: var(--surface); border-left: 1px solid var(--border); z-index: 200; transition: right 0.3s ease; display: flex; flex-direction: column; box-shadow: -8px 0 32px rgba(0,0,0,0.4); }
+    .history-drawer.open { right: 0; }
+    .drawer-header { padding: 20px 20px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+    .drawer-header h3 { font-size: 16px; font-weight: 700; }
+    .drawer-close { background: none; border: none; color: var(--text2); font-size: 20px; cursor: pointer; line-height: 1; }
+    .drawer-body { flex: 1; overflow-y: auto; padding: 16px; }
+    .drawer-body::-webkit-scrollbar { width: 4px; }
+    .drawer-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .history-item { padding: 12px 14px; background: var(--card); border-radius: var(--radius-sm); margin-bottom: 8px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
+    .history-item:hover { border-color: var(--accent); }
+    .history-item .hi-name { font-weight: 700; font-size: 14px; color: var(--text); margin-bottom: 3px; }
+    .history-item .hi-time { font-size: 13px; color: var(--accent2); font-variant-numeric: tabular-nums; }
+    .history-item .hi-date { font-size: 11px; color: var(--text3); margin-top: 3px; }
+    .empty-state { text-align: center; color: var(--text3); font-size: 13px; padding: 32px 0; }
+
+    /* ===== STOPWATCH ===== */
+    #panel-stopwatch .time-display { color: var(--text); }
+    .lap-list { margin-top: 20px; max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+    .lap-list::-webkit-scrollbar { width: 4px; }
+    .lap-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .lap-item { display: flex; justify-content: space-between; align-items: center; padding: 9px 14px; background: var(--surface2); border-radius: var(--radius-sm); font-size: 13px; color: var(--text2); }
+    .lap-item .lap-num { color: var(--accent2); font-weight: 700; font-size: 12px; }
+    .lap-item .lap-time { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text); }
+    .lap-item .lap-split { color: var(--text3); font-size: 12px; }
+    .lap-item.lap-best .lap-time { color: var(--green); }
+    .lap-item.lap-worst .lap-time { color: var(--red); }
+
+    /* ===== COUNTDOWN ===== */
+    .countdown-inputs { display: flex; gap: 10px; justify-content: center; align-items: flex-end; flex-wrap: wrap; margin-bottom: 24px; }
+    .input-group { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .input-group label { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); }
+    .time-input { width: 80px; padding: 12px 0; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 28px; font-weight: 700; text-align: center; outline: none; font-variant-numeric: tabular-nums; transition: border-color 0.2s; }
+    .time-input:focus { border-color: var(--accent); }
+    .time-input:disabled { opacity: 0.5; cursor: not-allowed; }
+    .colon-sep { font-size: 28px; font-weight: 800; color: var(--accent2); padding-bottom: 10px; opacity: 0.7; }
+    .countdown-ring { position: relative; width: 220px; height: 220px; margin: 0 auto 20px; }
+    .countdown-ring svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+    .countdown-ring-bg { fill: none; stroke: rgba(124, 58, 237, 0.1); stroke-width: 8; }
+    .countdown-ring-fg { fill: none; stroke: url(#cdGrad); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+    .countdown-inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .countdown-inner .time-display { font-size: clamp(36px, 6vw, 52px); }
+    .countdown-name-input { width: 100%; max-width: 320px; padding: 10px 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 14px; outline: none; text-align: center; margin-bottom: 12px; transition: border-color 0.2s; display: block; margin-left: auto; margin-right: auto; }
+    .countdown-name-input:focus { border-color: var(--accent); }
+    .countdown-name-input::placeholder { color: var(--text3); }
+    .countdown-label { font-size: 15px; font-weight: 600; color: var(--accent2); text-align: center; margin-top: -12px; margin-bottom: 16px; min-height: 22px; }
+
+    /* ===== WORLD CLOCK ===== */
+    .world-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+    .world-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; position: relative; overflow: hidden; transition: transform 0.2s, border-color 0.2s; }
+    .world-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .world-card:hover { transform: translateY(-3px); border-color: var(--accent); }
+    .world-card .city { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+    .world-card .timezone { font-size: 11px; color: var(--text3); margin-bottom: 12px; }
+    .world-card .wc-time { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -1px; margin-bottom: 4px; }
+    .world-card .wc-date { font-size: 12px; color: var(--text2); }
+    .world-add { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+    .world-select { flex: 1; min-width: 180px; padding: 10px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 14px; outline: none; cursor: pointer; }
+    .world-select:focus { border-color: var(--accent); }
+    .analog-wrap { width: 80px; height: 80px; position: relative; margin: 0 auto 10px; }
+    .analog-wrap svg { width: 100%; height: 100%; }
+
+    /* ===== POMODORO ===== */
+    .pomo-ring { width: 260px; height: 260px; position: relative; margin: 0 auto 24px; }
+    .pomo-ring svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+    .pomo-ring-bg { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 10; }
+    .pomo-ring-fg { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke 0.5s; }
+    .pomo-inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+    .pomo-inner .time-display { font-size: clamp(44px, 8vw, 60px); }
+    .pomo-phase { font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+    .pomo-session { color: var(--text3); font-size: 12px; margin-top: 2px; }
+    .pomo-settings { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    .pomo-setting-item { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; text-align: center; }
+    .pomo-setting-item label { display: block; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
+    .pomo-setting-item input { width: 100%; background: none; border: none; color: var(--text); font-size: 22px; font-weight: 700; text-align: center; outline: none; font-variant-numeric: tabular-nums; }
+    .pomo-dots { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; }
+    .pomo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); transition: all 0.3s; }
+    .pomo-dot.active { background: var(--red); border-color: var(--red); box-shadow: 0 0 8px rgba(239, 68, 68, 0.5); }
+    .pomo-dot.done { background: var(--accent); border-color: var(--accent); }
+
+    /* ===== Nature Sound Bar ===== */
+    .nature-bar {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .nature-btn {
+      padding: 8px 16px;
+      border-radius: 50px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text2);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .nature-btn:hover { border-color: var(--accent); color: var(--text); }
+    .nature-btn.playing {
+      background: linear-gradient(135deg, var(--green), #059669);
+      border-color: var(--green);
+      color: #fff;
+      box-shadow: 0 3px 12px rgba(16,185,129,0.35);
+    }
+    .nature-btn .vol-slider {
+      width: 60px;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(255,255,255,0.2);
+      border-radius: 4px;
+      outline: none;
+      cursor: pointer;
+    }
+    .nature-btn .vol-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    /* ===== ALARM CLOCK ===== */
+    .alarm-empty { text-align: center; padding: 40px 20px; color: var(--text3); }
+    .alarm-empty .alarm-empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.4; }
+    .alarm-empty p { font-size: 14px; margin-bottom: 16px; }
+    .alarm-add-form { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 20px; }
+    .alarm-time-pick { display: flex; gap: 4px; align-items: center; }
+    .alarm-time-pick input { width: 64px; padding: 10px 0; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 24px; font-weight: 700; text-align: center; outline: none; font-variant-numeric: tabular-nums; }
+    .alarm-time-pick input:focus { border-color: var(--accent); }
+    .alarm-time-pick .alarm-colon { font-size: 24px; font-weight: 800; color: var(--accent2); opacity: 0.7; padding-bottom: 2px; }
+    .alarm-label-input { flex: 1; min-width: 140px; padding: 10px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 14px; outline: none; }
+    .alarm-label-input:focus { border-color: var(--accent); }
+    .alarm-label-input::placeholder { color: var(--text3); }
+    .alarm-list { display: flex; flex-direction: column; gap: 8px; }
+    .alarm-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); transition: all 0.2s; }
+    .alarm-item:hover { border-color: var(--accent); }
+    .alarm-item.disabled { opacity: 0.4; }
+    .alarm-item .ai-time { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 100px; color: var(--accent2); }
+    .alarm-item .ai-info { flex: 1; }
+    .alarm-item .ai-label { font-weight: 700; font-size: 14px; color: var(--text); }
+    .alarm-item .ai-days { font-size: 11px; color: var(--text3); margin-top: 2px; }
+    .toggle-switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; inset: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 24px; cursor: pointer; transition: all 0.3s; }
+    .toggle-slider::before { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: var(--text3); transition: all 0.3s; }
+    .toggle-switch input:checked + .toggle-slider { background: var(--accent); border-color: var(--accent); }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); background: #fff; }
+    .alarm-delete { background: none; border: none; color: var(--text3); font-size: 18px; cursor: pointer; padding: 4px; border-radius: 6px; transition: all 0.2s; flex-shrink: 0; }
+    .alarm-delete:hover { color: var(--red); background: rgba(239,68,68,0.1); }
+    .alarm-day-picker { display: flex; gap: 4px; margin-bottom: 20px; justify-content: center; }
+    .day-chip { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface2); color: var(--text3); font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    .day-chip:hover { border-color: var(--accent); color: var(--text); }
+    .day-chip.selected { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4); }
+
+    /* ===== Sound Picker ===== */
+    .sound-picker {
+      margin-bottom: 20px;
+      padding: 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .sound-picker-title {
+      font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--text3); margin-bottom: 10px;
+    }
+    .sound-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 8px;
+    }
+    .sound-card {
+      padding: 10px 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      position: relative;
+    }
+    .sound-card:hover { border-color: var(--accent); }
+    .sound-card.active { border-color: var(--accent); background: rgba(124,58,237,0.1); }
+    .sound-card.active::after {
+      content: '✓';
+      position: absolute; top: 4px; right: 6px;
+      font-size: 12px; font-weight: 900; color: var(--accent);
+    }
+    .sound-card .sc-flag { font-size: 22px; margin-bottom: 4px; }
+    .sound-card .sc-name { font-size: 12px; font-weight: 700; color: var(--text); }
+    .sound-card .sc-lang { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+    /* ===== ALARM BANNER ===== */
+    .alarm-banner {
+      position: fixed; top: 20px; left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background: linear-gradient(135deg, var(--accent), #5b21b6);
+      color: #fff; padding: 14px 28px; border-radius: 50px;
+      font-weight: 700; font-size: 15px;
+      box-shadow: 0 8px 32px rgba(124, 58, 237, 0.5);
+      z-index: 1000;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      cursor: pointer; white-space: nowrap;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .alarm-banner.show { transform: translateX(-50%) translateY(0); }
+    .alarm-timer-badge {
+      background: rgba(255,255,255,0.2);
+      padding: 4px 12px;
+      border-radius: 50px;
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ===== CURRENT TIME BAR ===== */
+    .current-time-bar { text-align: center; padding: 10px 0 20px; font-size: 13px; color: var(--text3); }
+    .current-time-bar span { background: var(--surface); border: 1px solid var(--border); border-radius: 50px; padding: 6px 18px; font-variant-numeric: tabular-nums; }
+
+    @media (max-width: 600px) {
+      .card { padding: 20px 16px; }
+      .pomo-settings { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .world-grid { grid-template-columns: repeat(2, 1fr); }
+      .nav { gap: 4px; }
+      .nav-btn { padding: 8px 14px; font-size: 13px; }
+      .sound-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+<div class="bg-gradient"></div>
+
+<!-- Theme picker -->
+<button class="theme-toggle" onclick="toggleThemePanel()" title="主题配色">🎨</button>
+<div class="theme-panel" id="themePanel">
+  <div class="drawer-header"><h3>🎨 主题配色</h3><button class="drawer-close" onclick="toggleThemePanel()">×</button></div>
+  <div class="theme-body">
+    <div class="theme-section">
+      <div class="theme-section-title">背景色预设</div>
+      <div class="theme-presets" id="bgPresets"></div>
+      <div class="theme-custom-row">
+        <input type="color" class="theme-color-input" id="bgColorPicker" value="#0f0f1a" onchange="setBgColor(this.value)" />
+        <span class="theme-color-label">自定义背景色</span>
+      </div>
+    </div>
+    <div class="theme-section">
+      <div class="theme-section-title">卡片色</div>
+      <div class="theme-presets" id="cardPresets"></div>
+      <div class="theme-custom-row">
+        <input type="color" class="theme-color-input" id="cardColorPicker" value="#1e1e35" onchange="setCardColor(this.value)" />
+        <span class="theme-color-label">自定义卡片色</span>
+      </div>
+    </div>
+    <div class="theme-section">
+      <div class="theme-section-title">强调色</div>
+      <div class="theme-presets" id="accentPresets"></div>
+      <div class="theme-custom-row">
+        <input type="color" class="theme-color-input" id="accentColorPicker" value="#7c3aed" onchange="setAccentColor(this.value)" />
+        <span class="theme-color-label">自定义强调色</span>
+      </div>
+    </div>
+    <button class="theme-reset-btn" onclick="resetTheme()">↺ 恢复默认主题</button>
+  </div>
+</div>
+
+<!-- Alarm banner -->
+<div class="alarm-banner" id="alarmBanner" onclick="dismissAlarm()">
+  <span id="alarmBannerText">⏰ 时间到！</span>
+  <span class="alarm-timer-badge" id="alarmTimerBadge"></span>
+</div>
+
+<!-- History drawer -->
+<button class="history-toggle" onclick="toggleHistory()" title="历史记录">🕐</button>
+<div class="history-drawer" id="historyDrawer">
+  <div class="drawer-header"><h3>📋 历史记录</h3><button class="drawer-close" onclick="toggleHistory()">×</button></div>
+  <div class="drawer-body" id="historyBody"></div>
+</div>
+
+<div class="app">
+  <header>
+    <div class="logo">⏱ Time Tools</div>
+    <h1>时钟工具箱</h1>
+  </header>
+  <div class="current-time-bar"><span id="globalTime">北京时间 加载中...</span></div>
+
+  <nav class="nav">
+    <button class="nav-btn active" onclick="switchPanel('stopwatch')" id="tab-stopwatch"><span class="icon">⏱</span>计时器</button>
+    <button class="nav-btn" onclick="switchPanel('countdown')" id="tab-countdown"><span class="icon">⏳</span>倒计时</button>
+    <button class="nav-btn" onclick="switchPanel('world')" id="tab-world"><span class="icon">🌍</span>世界时钟</button>
+    <button class="nav-btn" onclick="switchPanel('pomodoro')" id="tab-pomodoro"><span class="icon">🍅</span>番茄钟</button>
+    <button class="nav-btn" onclick="switchPanel('alarm')" id="tab-alarm"><span class="icon">⏰</span>闹钟</button>
+  </nav>
+
+  <!-- ① Stopwatch -->
+  <div class="panel active" id="panel-stopwatch">
+    <div class="card">
+      <div class="section-title">计 时 器</div>
+      <div class="time-display" id="swDisplay">
+        <span id="swH">00</span><span class="sep">:</span><span id="swM">00</span><span class="sep">:</span><span id="swS">00</span><span class="ms" id="swMs">.00</span>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="swStartBtn" onclick="swToggle()">▶ 开始</button>
+        <button class="btn btn-teal" onclick="swLap()" id="swLapBtn" disabled>🚩 计次</button>
+        <button class="btn btn-secondary" onclick="swReset()">↺ 重置</button>
+      </div>
+      <div class="lap-list" id="lapList"></div>
+    </div>
+  </div>
+
+  <!-- ② Countdown -->
+  <div class="panel" id="panel-countdown">
+    <div class="card">
+      <div class="section-title">倒 计 时</div>
+      <input class="countdown-name-input" id="cdNameInput" type="text" placeholder="给这个计时器起个名字（可选）" maxlength="30" />
+      <div class="countdown-inputs" id="cdInputs">
+        <div class="input-group"><label>时</label><input class="time-input" id="cdH" type="number" min="0" max="99" value="0" /></div>
+        <div class="colon-sep">:</div>
+        <div class="input-group"><label>分</label><input class="time-input" id="cdM" type="number" min="0" max="59" value="25" /></div>
+        <div class="colon-sep">:</div>
+        <div class="input-group"><label>秒</label><input class="time-input" id="cdS" type="number" min="0" max="59" value="0" /></div>
+      </div>
+      <div class="countdown-ring" id="cdRingWrap">
+        <svg viewBox="0 0 220 220">
+          <defs><linearGradient id="cdGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient></defs>
+          <circle class="countdown-ring-bg" cx="110" cy="110" r="95"/>
+          <circle class="countdown-ring-fg" id="cdRingFg" cx="110" cy="110" r="95" stroke-dasharray="596.9" stroke-dashoffset="0"/>
+        </svg>
+        <div class="countdown-inner">
+          <div class="time-display" id="cdDisplay" style="display:none"><span id="cdDH">00</span><span class="sep">:</span><span id="cdDM">00</span><span class="sep">:</span><span id="cdDS">00</span></div>
+        </div>
+      </div>
+      <div class="countdown-label" id="cdLabel"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="cdStartBtn" onclick="cdToggle()">▶ 开始</button>
+        <button class="btn btn-secondary" onclick="cdReset()">↺ 重置</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ World Clock -->
+  <div class="panel" id="panel-world">
+    <div class="card">
+      <div class="section-title">世 界 时 钟</div>
+      <div class="world-grid" id="worldGrid"></div>
+      <div class="world-add">
+        <select class="world-select" id="worldSelect"><option value="">添加城市...</option></select>
+        <button class="btn btn-primary" onclick="addWorldCity()">+ 添加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ Pomodoro -->
+  <div class="panel" id="panel-pomodoro">
+    <div class="card">
+      <div class="section-title">番 茄 钟</div>
+      <div class="pomo-settings">
+        <div class="pomo-setting-item"><label>🍅 专注</label><input type="number" id="pomoWork" value="25" min="1" max="90" onchange="pomoApplySettings()"/><div style="font-size:11px;color:var(--text3);margin-top:4px;">分钟</div></div>
+        <div class="pomo-setting-item"><label>☕ 短休息</label><input type="number" id="pomoShort" value="5" min="1" max="30" onchange="pomoApplySettings()"/><div style="font-size:11px;color:var(--text3);margin-top:4px;">分钟</div></div>
+        <div class="pomo-setting-item"><label>🛋 长休息</label><input type="number" id="pomoLong" value="15" min="5" max="60" onchange="pomoApplySettings()"/><div style="font-size:11px;color:var(--text3);margin-top:4px;">分钟</div></div>
+      </div>
+      <div class="pomo-dots" id="pomoDots"></div>
+
+      <!-- Nature Sounds -->
+      <div class="sound-picker" id="natureSoundPicker">
+        <div class="sound-picker-title">🎧 专注白噪音（可选）</div>
+        <div class="nature-bar">
+          <button class="nature-btn" id="nature-rain" onclick="toggleNature('rain')">
+            🌧 雨声 <input type="range" class="vol-slider" min="0" max="100" value="70" onclick="event.stopPropagation()" oninput="setNatureVol('rain',this.value)" />
+          </button>
+          <button class="nature-btn" id="nature-fire" onclick="toggleNature('fire')">
+            🔥 篝火 <input type="range" class="vol-slider" min="0" max="100" value="70" onclick="event.stopPropagation()" oninput="setNatureVol('fire',this.value)" />
+          </button>
+          <button class="nature-btn" id="nature-forest" onclick="toggleNature('forest')">
+            🌲 森林 <input type="range" class="vol-slider" min="0" max="100" value="70" onclick="event.stopPropagation()" oninput="setNatureVol('forest',this.value)" />
+          </button>
+          <button class="nature-btn" id="nature-ocean" onclick="toggleNature('ocean')">
+            🌊 海浪 <input type="range" class="vol-slider" min="0" max="100" value="70" onclick="event.stopPropagation()" oninput="setNatureVol('ocean',this.value)" />
+          </button>
+          <button class="nature-btn" id="nature-stream" onclick="toggleNature('stream')">
+            💧 溪流 <input type="range" class="vol-slider" min="0" max="100" value="70" onclick="event.stopPropagation()" oninput="setNatureVol('stream',this.value)" />
+          </button>
+          <button class="nature-btn" id="nature-birds" onclick="toggleNature('birds')">
+            🐦 鸟鸣 <input type="range" class="vol-slider" min="0" max="100" value="60" onclick="event.stopPropagation()" oninput="setNatureVol('birds',this.value)" />
+          </button>
+        </div>
+      </div>
+
+      <div class="pomo-ring" id="pomoRing">
+        <svg viewBox="0 0 260 260">
+          <defs>
+            <linearGradient id="pomoGradWork" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ef4444"/><stop offset="100%" stop-color="#f97316"/></linearGradient>
+            <linearGradient id="pomoGradShort" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#34d399"/></linearGradient>
+            <linearGradient id="pomoGradLong" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0ea5e9"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient>
+          </defs>
+          <circle class="pomo-ring-bg" cx="130" cy="130" r="110"/>
+          <circle class="pomo-ring-fg" id="pomoRingFg" cx="130" cy="130" r="110" stroke="url(#pomoGradWork)" stroke-dasharray="691.15" stroke-dashoffset="0"/>
+        </svg>
+        <div class="pomo-inner">
+          <div class="time-display" id="pomoDisplay">25:00</div>
+          <div class="pomo-phase" id="pomoPhase" style="color:var(--red)">🍅 专注时间</div>
+          <div class="pomo-session" id="pomoSession">第 1 轮</div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-danger" id="pomoStartBtn" onclick="pomoToggle()">▶ 开始</button>
+        <button class="btn btn-secondary" onclick="pomoSkip()">⏭ 跳过</button>
+        <button class="btn btn-secondary" onclick="pomoReset()">↺ 重置</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑤ Alarm -->
+  <div class="panel" id="panel-alarm">
+    <div class="card">
+      <div class="section-title">闹 钟</div>
+      <div class="alarm-empty" id="alarmEmpty" style="display:none">
+        <div class="alarm-empty-icon">⏰</div>
+        <p>还没有设置闹钟</p>
+        <button class="btn btn-primary" onclick="document.getElementById('alarmEmpty').style.display='none';document.getElementById('alarmAddArea').style.display='';">+ 添加第一个闹钟</button>
+      </div>
+      <div id="alarmAddArea">
+        <div class="sound-picker">
+          <div class="sound-picker-title">🎵 闹钟铃声</div>
+          <div class="sound-grid" id="soundGrid"></div>
+        </div>
+        <div class="alarm-add-form">
+          <div class="alarm-time-pick">
+            <input type="number" id="alarmHour" min="0" max="23" value="7" />
+            <span class="alarm-colon">:</span>
+            <input type="number" id="alarmMin" min="0" max="59" value="0" />
+          </div>
+          <input class="alarm-label-input" id="alarmLabelInput" type="text" placeholder="闹钟备注（可选）" maxlength="30" />
+          <button class="btn btn-primary" onclick="alarmAdd()">+ 添加</button>
+        </div>
+        <div class="alarm-day-picker" id="alarmDayPicker"></div>
+        <div class="alarm-list" id="alarmList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===========================
+   GLOBAL TIME
+=========================== */
+function updateGlobalTime() {
+  const now = new Date();
+  const bj = new Intl.DateTimeFormat('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', second:'2-digit', hour12: false
+  }).format(now);
+  document.getElementById('globalTime').textContent = '🕐 北京时间 ' + bj;
+}
+setInterval(updateGlobalTime, 1000);
+updateGlobalTime();
+
+function switchPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function pad(n, d = 2) { return String(n).padStart(d, '0'); }
+
+/* ===========================================================
+   SOUND ENGINE — Web Audio synthesized sounds
+   =========================================================== */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+// Restore context on user interaction (Chrome policy)
+document.addEventListener('click', () => { if (audioCtx.state === 'suspended') audioCtx.resume(); }, { once: true });
+
+/* ---------- Melody definitions ---------- */
+const MELODIES = [
+  {
+    id: 'default', flag: '🔔', name: '经典铃声', lang: '',
+    notes: [523,659,784,1047,784,659,523, 523,659,784,1047,784,659,523],
+    tempo: 0.18, type: 'sine', vol: 0.25
+  },
+  {
+    id: 'chinese', flag: '🇨🇳', name: '茉莉花', lang: '中文',
+    // 茉莉花简谱片段
+    notes: [392,440,523,523,440,392,330, 392,440,523,659,587,523,440,392,330],
+    tempo: 0.28, type: 'sine', vol: 0.25
+  },
+  {
+    id: 'japanese', flag: '🇯🇵', name: '樱花樱花', lang: '日本语',
+    notes: [330,330,392,392,440,440,392,330, 294,294,330,330,392,330,294,262],
+    tempo: 0.25, type: 'sine', vol: 0.22
+  },
+  {
+    id: 'korean', flag: '🇰🇷', name: '阿里郎', lang: '한국어',
+    notes: [440,494,523,440,392,349,392,440, 440,494,523,587,523,494,440,392],
+    tempo: 0.28, type: 'sine', vol: 0.22
+  },
+  {
+    id: 'english', flag: '🇬🇧', name: 'Westminster', lang: 'English',
+    notes: [523,659,784,659,523,784,659,523, 659,523,784,659,523,392,440,523],
+    tempo: 0.35, type: 'triangle', vol: 0.2
+  },
+  {
+    id: 'french', flag: '🇫🇷', name: 'La Vie en Rose', lang: 'Français',
+    notes: [330,392,440,523,440,392,330, 294,349,392,440,392,349,330],
+    tempo: 0.3, type: 'sine', vol: 0.22
+  },
+  {
+    id: 'spanish', flag: '🇪🇸', name: 'Bésame Mucho', lang: 'Español',
+    notes: [392,440,523,587,523,440,392, 349,440,523,440,392,349,330],
+    tempo: 0.32, type: 'sine', vol: 0.22
+  },
+  {
+    id: 'german', flag: '🇩🇪', name: 'O Tannenbaum', lang: 'Deutsch',
+    notes: [330,330,330,392,440,440,392,330, 294,294,294,330,349,349,330],
+    tempo: 0.3, type: 'triangle', vol: 0.22
+  },
+  {
+    id: 'indian', flag: '🇮🇳', name: 'Raga', lang: 'हिन्दी',
+    notes: [440,494,587,659,587,494,440,392, 440,494,587,659,784,659,587,494],
+    tempo: 0.25, type: 'sine', vol: 0.2
+  },
+  {
+    id: 'italian', flag: '🇮🇹', name: 'O Sole Mio', lang: 'Italiano',
+    notes: [349,440,523,587,523,440,349,392, 440,523,587,659,587,523,440,349],
+    tempo: 0.3, type: 'sine', vol: 0.22
+  },
+  {
+    id: 'russian', flag: '🇷🇺', name: 'Kalinka', lang: 'Русский',
+    notes: [330,392,440,523,659,523,440,392, 440,523,440,392,330,294,330,392],
+    tempo: 0.22, type: 'sine', vol: 0.22
+  },
+  {
+    id: 'arabic', flag: '🇸🇦', name: 'Samai', lang: 'العربية',
+    notes: [440,523,587,659,587,523,440,392, 440,523,587,659,784,659,587,523],
+    tempo: 0.26, type: 'sine', vol: 0.2
+  }
+];
+
+let selectedAlarmSound = localStorage.getItem('alarm_sound') || 'default';
+
+function buildSoundGrid() {
+  const grid = document.getElementById('soundGrid');
+  grid.innerHTML = MELODIES.map(m =>
+    `<div class="sound-card ${selectedAlarmSound === m.id ? 'active' : ''}" onclick="selectAlarmSound('${m.id}')">
+      <div class="sc-flag">${m.flag}</div>
+      <div class="sc-name">${m.name}</div>
+      ${m.lang ? `<div class="sc-lang">${m.lang}</div>` : ''}
+    </div>`
+  ).join('');
+}
+
+function selectAlarmSound(id) {
+  selectedAlarmSound = id;
+  localStorage.setItem('alarm_sound', id);
+  buildSoundGrid();
+  // Preview
+  const m = MELODIES.find(x => x.id === id);
+  if (m) playMelodyOnce(m);
+}
+
+function playMelodyOnce(melody) {
+  const now = audioCtx.currentTime;
+  melody.notes.forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = melody.type || 'sine';
+    osc.frequency.value = freq;
+    const t = now + i * melody.tempo;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(melody.vol, t + 0.04);
+    gain.gain.setValueAtTime(melody.vol, t + melody.tempo * 0.6);
+    gain.gain.linearRampToValueAtTime(0, t + melody.tempo * 0.95);
+    osc.start(t);
+    osc.stop(t + melody.tempo);
+  });
+}
+
+/* ---------- Persistent alarm loop ---------- */
+let alarmLoopInterval = null;
+let alarmLoopStartTime = null;
+let alarmCycleCount = 0; // 0=ring, 1=silent, 2=ring, ...
+const RING_DURATION = 5 * 60 * 1000; // 5 min
+const SILENT_DURATION = 5 * 60 * 1000; // 5 min
+const MAX_TOTAL = 60 * 60 * 1000; // 1 hour
+let currentAlarmMsg = '';
+
+function startAlarmLoop(msg) {
+  currentAlarmMsg = msg;
+  alarmLoopStartTime = Date.now();
+  alarmCycleCount = 0;
+  const banner = document.getElementById('alarmBanner');
+  document.getElementById('alarmBannerText').textContent = '⏰ ' + msg;
+  banner.classList.add('show');
+
+  // Start ringing immediately
+  startRinging();
+  alarmLoopInterval = setInterval(checkAlarmLoop, 1000);
+  updateAlarmTimerBadge();
+}
+
+function startRinging() {
+  if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
+  const m = MELODIES.find(x => x.id === selectedAlarmSound) || MELODIES[0];
+  playMelodyLoop(m);
+}
+
+function playMelodyLoop(melody) {
+  if (alarmLoopInterval === null) return; // stopped
+  const now = audioCtx.currentTime;
+  melody.notes.forEach((freq, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = melody.type || 'sine';
+    osc.frequency.value = freq;
+    const t = now + i * melody.tempo;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(melody.vol, t + 0.04);
+    gain.gain.setValueAtTime(melody.vol, t + melody.tempo * 0.6);
+    gain.gain.linearRampToValueAtTime(0, t + melody.tempo * 0.95);
+    osc.start(t);
+    osc.stop(t + melody.tempo);
+  });
+  // Loop the melody every 3 seconds while ringing
+  if (alarmLoopInterval !== null) {
+    const melodyLen = melody.notes.length * melody.tempo * 1000;
+    const loopDelay = Math.max(melodyLen + 500, 3000);
+    playMelodyLoop._timer = setTimeout(() => playMelodyLoop(melody), loopDelay);
+  }
+}
+
+function checkAlarmLoop() {
+  const elapsed = Date.now() - alarmLoopStartTime;
+  if (elapsed >= MAX_TOTAL) {
+    stopAlarmLoop();
+    return;
+  }
+  // Determine which phase we're in
+  const cycleTime = RING_DURATION + SILENT_DURATION;
+  const posInCycle = elapsed % cycleTime;
+  const isRingPhase = posInCycle < RING_DURATION;
+
+  if (isRingPhase && !document.getElementById('alarmBanner').classList.contains('show')) {
+    document.getElementById('alarmBanner').classList.add('show');
+    startRinging();
+  } else if (!isRingPhase && document.getElementById('alarmBanner').classList.contains('show')) {
+    document.getElementById('alarmBanner').classList.remove('show');
+    stopMelodyLoop();
+  }
+  updateAlarmTimerBadge();
+}
+
+function updateAlarmTimerBadge() {
+  const elapsed = Date.now() - alarmLoopStartTime;
+  const remaining = Math.max(0, MAX_TOTAL - elapsed);
+  const rem = Math.ceil(remaining / 60000);
+  document.getElementById('alarmTimerBadge').textContent = '剩余 ' + rem + ' 分钟';
+}
+
+function stopMelodyLoop() {
+  if (playMelodyLoop._timer) { clearTimeout(playMelodyLoop._timer); playMelodyLoop._timer = null; }
+}
+
+function stopAlarmLoop() {
+  if (alarmLoopInterval !== null) { clearInterval(alarmLoopInterval); alarmLoopInterval = null; }
+  alarmLoopStartTime = null;
+  stopMelodyLoop();
+  document.getElementById('alarmBanner').classList.remove('show');
+  if (navigator.vibrate) navigator.vibrate(0);
+}
+
+function triggerAlarm(msg) {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  startAlarmLoop(msg);
+}
+
+function dismissAlarm() {
+  stopAlarmLoop();
+}
+
+// For backward compat (countdown, pomodoro still call these)
+function playAlarmSound() {
+  const m = MELODIES.find(x => x.id === selectedAlarmSound) || MELODIES[0];
+  playMelodyOnce(m);
+}
+
+/* ===========================================================
+   NATURE SOUNDS — Web Audio generated ambient noise
+   =========================================================== */
+const natureState = {};
+const NATURE_CONFIGS = {
+  rain:   { filterFreq: 800,  q: 0.7, lfoFreq: 0.3, type: 'brown',  icon: '🌧' },
+  fire:   { filterFreq: 400,  q: 1.5, lfoFreq: 0.15, type: 'brown', icon: '🔥' },
+  forest: { filterFreq: 1200, q: 0.5, lfoFreq: 0.5, type: 'pink',   icon: '🌲' },
+  ocean:  { filterFreq: 500,  q: 0.8, lfoFreq: 0.08, type: 'brown',  icon: '🌊' },
+  stream: { filterFreq: 2000, q: 0.6, lfoFreq: 0.4, type: 'pink',   icon: '💧' },
+  birds:  { filterFreq: 3000, q: 2,   lfoFreq: 0.1, type: 'white',  icon: '🐦' }
+};
+
+function createNoise(type) {
+  const bufferSize = 2 * audioCtx.sampleRate;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  if (type === 'white') {
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+  } else if (type === 'brown') {
+    let last = 0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      data[i] = (last + (0.02 * white)) / 1.02;
+      last = data[i];
+      data[i] *= 3.5;
+    }
+  } else { // pink
+    let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+    for (let i = 0; i < bufferSize; i++) {
+      const w = Math.random() * 2 - 1;
+      b0 = 0.99886 * b0 + w * 0.0555179;
+      b1 = 0.99332 * b1 + w * 0.0750759;
+      b2 = 0.96900 * b2 + w * 0.1538520;
+      b3 = 0.86650 * b3 + w * 0.3104856;
+      b4 = 0.55000 * b4 + w * 0.5329522;
+      b5 = -0.7616 * b5 - w * 0.0168980;
+      data[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362;
+      data[i] *= 0.11;
+      b6 = w * 0.115926;
+    }
+  }
+  const source = audioCtx.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+  return source;
+}
+
+function toggleNature(name) {
+  if (natureState[name] && natureState[name].playing) {
+    stopNature(name);
+  } else {
+    startNature(name);
+  }
+}
+
+function startNature(name) {
+  const cfg = NATURE_CONFIGS[name];
+  if (!cfg) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+
+  const source = createNoise(cfg.type);
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = cfg.filterFreq;
+  filter.Q.value = cfg.q;
+
+  // LFO for gentle modulation
+  const lfo = audioCtx.createOscillator();
+  const lfoGain = audioCtx.createGain();
+  lfo.type = 'sine';
+  lfo.frequency.value = cfg.lfoFreq;
+  lfoGain.gain.value = cfg.filterFreq * 0.3;
+  lfo.connect(lfoGain);
+  lfoGain.connect(filter.frequency);
+  lfo.start();
+
+  const gainNode = audioCtx.createGain();
+  const vol = (natureState[name] && natureState[name].vol) || 0.7;
+  gainNode.gain.value = 0;
+  gainNode.gain.linearRampToValueAtTime(vol * 0.4, audioCtx.currentTime + 1);
+
+  source.connect(filter);
+  filter.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+  source.start();
+
+  natureState[name] = { source, filter, lfo, lfoGain, gainNode, vol, playing: true };
+  document.getElementById('nature-' + name).classList.add('playing');
+}
+
+function stopNature(name) {
+  const ns = natureState[name];
+  if (!ns) return;
+  ns.gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+  setTimeout(() => {
+    try { ns.source.stop(); ns.lfo.stop(); } catch(e) {}
+  }, 600);
+  ns.playing = false;
+  document.getElementById('nature-' + name).classList.remove('playing');
+}
+
+function setNatureVol(name, val) {
+  const v = val / 100;
+  if (natureState[name] && natureState[name].playing) {
+    natureState[name].gainNode.gain.linearRampToValueAtTime(v * 0.4, audioCtx.currentTime + 0.1);
+  }
+  if (!natureState[name]) natureState[name] = {};
+  natureState[name].vol = v;
+}
+
+function stopAllNature() {
+  Object.keys(NATURE_CONFIGS).forEach(n => { if (natureState[n] && natureState[n].playing) stopNature(n); });
+}
+
+/* ===========================================================
+   ① STOPWATCH
+=========================================================== */
+let swRunning = false, swInterval = null, swStartTime = 0, swElapsed = 0, laps = [];
+
+function swRender(ms) {
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  const mss = Math.floor((ms % 1000) / 10);
+  document.getElementById('swH').textContent = pad(h);
+  document.getElementById('swM').textContent = pad(m);
+  document.getElementById('swS').textContent = pad(s);
+  document.getElementById('swMs').textContent = '.' + pad(mss, 2);
+}
+
+function swToggle() {
+  if (!swRunning) {
+    swRunning = true; swStartTime = performance.now() - swElapsed;
+    swInterval = setInterval(() => { swElapsed = performance.now() - swStartTime; swRender(swElapsed); }, 30);
+    document.getElementById('swStartBtn').textContent = '⏸ 暂停';
+    document.getElementById('swStartBtn').className = 'btn btn-orange';
+    document.getElementById('swLapBtn').disabled = false;
+  } else {
+    swRunning = false; clearInterval(swInterval);
+    document.getElementById('swStartBtn').textContent = '▶ 继续';
+    document.getElementById('swStartBtn').className = 'btn btn-primary';
+  }
+}
+
+function swLap() {
+  if (!swRunning) return;
+  const now = swElapsed;
+  const prev = laps.length > 0 ? laps[laps.length - 1].total : 0;
+  laps.push({ total: now, split: now - prev });
+  renderLaps();
+}
+
+function renderLaps() {
+  if (!laps.length) { document.getElementById('lapList').innerHTML = ''; return; }
+  const splits = laps.map(l => l.split);
+  const minS = Math.min(...splits), maxS = Math.max(...splits);
+  document.getElementById('lapList').innerHTML = [...laps].reverse().map((l, ri) => {
+    const i = laps.length - ri;
+    const cls = laps.length > 1 ? (l.split === minS ? 'lap-best' : l.split === maxS ? 'lap-worst' : '') : '';
+    return `<div class="lap-item ${cls}"><span class="lap-num">Lap ${i}</span><span class="lap-split">${msToStr(l.split)}</span><span class="lap-time">${msToStr(l.total)}</span></div>`;
+  }).join('');
+}
+
+function msToStr(ms) {
+  return `${pad(Math.floor(ms/60000))}:${pad(Math.floor((ms%60000)/1000))}.${pad(Math.floor((ms%1000)/10),2)}`;
+}
+
+function swReset() {
+  swRunning = false; clearInterval(swInterval); swElapsed = 0; laps = [];
+  swRender(0);
+  document.getElementById('swStartBtn').textContent = '▶ 开始';
+  document.getElementById('swStartBtn').className = 'btn btn-primary';
+  document.getElementById('swLapBtn').disabled = true;
+  document.getElementById('lapList').innerHTML = '';
+}
+
+/* ===========================================================
+   ② COUNTDOWN
+=========================================================== */
+let cdRunning = false, cdInterval = null, cdRemaining = 0, cdTotal = 0;
+const CIRCUMFERENCE_CD = 2 * Math.PI * 95;
+
+function cdGetInput() {
+  return (parseInt(document.getElementById('cdH').value)||0)*3600 + (parseInt(document.getElementById('cdM').value)||0)*60 + (parseInt(document.getElementById('cdS').value)||0);
+}
+
+function cdRenderTime(secs) {
+  document.getElementById('cdDH').textContent = pad(Math.floor(secs/3600));
+  document.getElementById('cdDM').textContent = pad(Math.floor((secs%3600)/60));
+  document.getElementById('cdDS').textContent = pad(secs%60);
+  document.getElementById('cdRingFg').style.strokeDashoffset = CIRCUMFERENCE_CD * (1 - (cdTotal > 0 ? secs/cdTotal : 0));
+}
+
+function cdToggle() {
+  if (!cdRunning) {
+    if (cdRemaining === 0) {
+      cdTotal = cdGetInput(); cdRemaining = cdTotal;
+      if (cdTotal <= 0) return;
+      const name = document.getElementById('cdNameInput').value.trim();
+      saveHistory({ name: name||'未命名计时', h: parseInt(document.getElementById('cdH').value)||0, m: parseInt(document.getElementById('cdM').value)||0, s: parseInt(document.getElementById('cdS').value)||0 });
+    }
+    cdRunning = true;
+    document.getElementById('cdInputs').style.display = 'none';
+    document.getElementById('cdDisplay').style.display = '';
+    document.getElementById('cdLabel').textContent = document.getElementById('cdNameInput').value.trim() || '';
+    document.getElementById('cdNameInput').disabled = true;
+    document.getElementById('cdStartBtn').textContent = '⏸ 暂停';
+    document.getElementById('cdStartBtn').className = 'btn btn-orange';
+    cdRenderTime(cdRemaining);
+    cdInterval = setInterval(() => {
+      cdRemaining--; cdRenderTime(cdRemaining);
+      if (cdRemaining <= 0) {
+        cdRunning = false; clearInterval(cdInterval);
+        triggerAlarm((document.getElementById('cdNameInput').value.trim()||'倒计时') + ' 时间到！');
+        document.getElementById('cdStartBtn').textContent = '▶ 开始';
+        document.getElementById('cdStartBtn').className = 'btn btn-primary';
+      }
+    }, 1000);
+  } else {
+    cdRunning = false; clearInterval(cdInterval);
+    document.getElementById('cdStartBtn').textContent = '▶ 继续';
+    document.getElementById('cdStartBtn').className = 'btn btn-primary';
+  }
+}
+
+function cdReset() {
+  cdRunning = false; clearInterval(cdInterval); cdRemaining = 0; cdTotal = 0;
+  document.getElementById('cdInputs').style.display = '';
+  document.getElementById('cdDisplay').style.display = 'none';
+  document.getElementById('cdLabel').textContent = '';
+  document.getElementById('cdNameInput').disabled = false;
+  document.getElementById('cdStartBtn').textContent = '▶ 开始';
+  document.getElementById('cdStartBtn').className = 'btn btn-primary';
+  document.getElementById('cdRingFg').style.strokeDashoffset = 0;
+}
+
+/* ===========================================================
+   HISTORY
+=========================================================== */
+function saveHistory(item) {
+  const key = 'cd_history';
+  let arr = JSON.parse(localStorage.getItem(key) || '[]');
+  arr.unshift({ ...item, date: new Date().toLocaleString('zh-CN') });
+  if (arr.length > 30) arr = arr.slice(0, 30);
+  localStorage.setItem(key, JSON.stringify(arr));
+}
+
+function loadHistory() {
+  const arr = JSON.parse(localStorage.getItem('cd_history') || '[]');
+  const body = document.getElementById('historyBody');
+  if (!arr.length) { body.innerHTML = '<div class="empty-state">📭 暂无历史记录</div>'; return; }
+  body.innerHTML = arr.map((item, i) => `
+    <div class="history-item" onclick="applyHistory(${i})">
+      <div class="hi-name">${item.name||'未命名计时'}</div>
+      <div class="hi-time">${pad(item.h)}:${pad(item.m)}:${pad(item.s)}</div>
+      <div class="hi-date">${item.date}</div>
+    </div>`).join('');
+}
+
+function applyHistory(i) {
+  const arr = JSON.parse(localStorage.getItem('cd_history') || '[]');
+  const item = arr[i]; if (!item) return;
+  cdReset();
+  document.getElementById('cdH').value = item.h;
+  document.getElementById('cdM').value = item.m;
+  document.getElementById('cdS').value = item.s;
+  document.getElementById('cdNameInput').value = item.name || '';
+  toggleHistory(); switchPanel('countdown');
+}
+
+function toggleHistory() {
+  const d = document.getElementById('historyDrawer');
+  if (d.classList.toggle('open')) loadHistory();
+}
+
+/* ===========================================================
+   ③ WORLD CLOCK
+=========================================================== */
+const CITIES = [
+  { name:'北京', tz:'Asia/Shanghai', color:'#ef4444' },
+  { name:'东京', tz:'Asia/Tokyo', color:'#f59e0b' },
+  { name:'首尔', tz:'Asia/Seoul', color:'#ec4899' },
+  { name:'悉尼', tz:'Australia/Sydney', color:'#10b981' },
+  { name:'迪拜', tz:'Asia/Dubai', color:'#f97316' },
+  { name:'伦敦', tz:'Europe/London', color:'#7c3aed' },
+  { name:'巴黎', tz:'Europe/Paris', color:'#0ea5e9' },
+  { name:'纽约', tz:'America/New_York', color:'#38bdf8' },
+  { name:'洛杉矶', tz:'America/Los_Angeles', color:'#a78bfa' },
+  { name:'芝加哥', tz:'America/Chicago', color:'#34d399' },
+  { name:'圣保罗', tz:'America/Sao_Paulo', color:'#fb923c' },
+  { name:'莫斯科', tz:'Europe/Moscow', color:'#e879f9' },
+  { name:'开罗', tz:'Africa/Cairo', color:'#facc15' },
+  { name:'新加坡', tz:'Asia/Singapore', color:'#4ade80' },
+  { name:'孟买', tz:'Asia/Kolkata', color:'#f87171' },
+];
+let worldCities = ['北京','纽约','伦敦','东京'];
+
+function buildWorldSelect() {
+  const sel = document.getElementById('worldSelect');
+  CITIES.forEach(c => { const o = document.createElement('option'); o.value = c.name; o.textContent = c.name; sel.appendChild(o); });
+}
+function addWorldCity() { const v = document.getElementById('worldSelect').value; if (!v || worldCities.includes(v)) return; worldCities.push(v); document.getElementById('worldSelect').value = ''; renderWorldGrid(); }
+function removeWorldCity(n) { worldCities = worldCities.filter(c => c !== n); renderWorldGrid(); }
+
+function drawAnalog(id, date, tz) {
+  const now = new Date(new Intl.DateTimeFormat('en',{timeZone:tz,hour:'numeric',minute:'numeric',second:'numeric',hour12:false}).format(date).split(':').reduce((a,v,i)=>{i===0?a.push(`2000-01-01T${v}`):a[0]+=':'+v;return a;},[]).join('')+'Z');
+  const h=now.getUTCHours()%12, m=now.getUTCMinutes(), s=now.getUTCSeconds();
+  const hD=h*30+m*0.5, mD=m*6, sD=s*6;
+  const el=document.getElementById(id); if(!el) return;
+  el.innerHTML=`<svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>${[12,3,6,9].map((n,i)=>`<circle cx="${40+34*Math.sin(i*90*Math.PI/180)}" cy="${40-34*Math.cos(i*90*Math.PI/180)}" r="2" fill="rgba(255,255,255,0.3)"/>`).join('')}<line x1="40" y1="40" x2="${40+18*Math.sin(hD*Math.PI/180)}" y2="${40-18*Math.cos(hD*Math.PI/180)}" stroke="white" stroke-width="3" stroke-linecap="round"/><line x1="40" y1="40" x2="${40+26*Math.sin(mD*Math.PI/180)}" y2="${40-26*Math.cos(mD*Math.PI/180)}" stroke="rgba(200,200,255,0.9)" stroke-width="2" stroke-linecap="round"/><line x1="40" y1="40" x2="${40+30*Math.sin(sD*Math.PI/180)}" y2="${40-30*Math.cos(sD*Math.PI/180)}" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round"/><circle cx="40" cy="40" r="3" fill="#7c3aed"/></svg>`;
+}
+
+function renderWorldGrid() {
+  document.getElementById('worldGrid').innerHTML = worldCities.map(name => {
+    const c = CITIES.find(x => x.name === name); if(!c) return '';
+    return `<div class="world-card" id="wcard-${name}"><div style="position:absolute;top:0;left:0;right:0;height:3px;background:${c.color};border-radius:16px 16px 0 0;"></div><div class="analog-wrap" id="analog-${name}"></div><div class="city">${c.name}</div><div class="timezone">${c.tz}</div><div class="wc-time" id="wt-${name}" style="color:${c.color}">--:--:--</div><div class="wc-date" id="wd-${name}">---</div><button onclick="removeWorldCity('${name}')" style="position:absolute;top:12px;right:12px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;line-height:1;" title="移除">×</button></div>`;
+  }).join('');
+}
+
+function updateWorldClocks() {
+  const now = new Date();
+  worldCities.forEach(name => {
+    const c = CITIES.find(x => x.name === name); if(!c) return;
+    const te = document.getElementById('wt-'+name), de = document.getElementById('wd-'+name);
+    if(te) te.textContent = new Intl.DateTimeFormat('zh-CN',{timeZone:c.tz,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(now);
+    if(de) de.textContent = new Intl.DateTimeFormat('zh-CN',{timeZone:c.tz,month:'long',day:'numeric',weekday:'short'}).format(now);
+    drawAnalog('analog-'+name, now, c.tz);
+  });
+}
+
+/* ===========================================================
+   ④ POMODORO
+=========================================================== */
+let pomoRunning = false, pomoInterval = null;
+let pomoPhase = 'work', pomoSession = 1, pomoRemaining = 0, pomoTotal = 0;
+const POMO_SESSIONS = 4;
+const CIRCUMFERENCE_POMO = 2 * Math.PI * 110;
+
+function pomoGetSettings() {
+  return {
+    work: (parseInt(document.getElementById('pomoWork').value)||25)*60,
+    short: (parseInt(document.getElementById('pomoShort').value)||5)*60,
+    long: (parseInt(document.getElementById('pomoLong').value)||15)*60
+  };
+}
+function pomoApplySettings() {
+  if(pomoRunning) return;
+  const s=pomoGetSettings();
+  pomoTotal=s[pomoPhase==='long'?'long':pomoPhase==='short'?'short':'work'];
+  pomoRemaining=pomoTotal; pomoRenderTime(pomoRemaining); pomoRenderRing(1);
+}
+function pomoRenderTime(secs) { document.getElementById('pomoDisplay').textContent=`${pad(Math.floor(secs/60))}:${pad(secs%60)}`; }
+function pomoRenderRing(pct) { document.getElementById('pomoRingFg').style.strokeDashoffset=CIRCUMFERENCE_POMO*(1-pct); }
+function pomoRenderPhase() {
+  const el=document.getElementById('pomoPhase'), fg=document.getElementById('pomoRingFg');
+  if(pomoPhase==='work'){el.textContent='🍅 专注时间';el.style.color='var(--red)';fg.style.stroke='url(#pomoGradWork)';}
+  else if(pomoPhase==='short'){el.textContent='☕ 短暂休息';el.style.color='var(--green)';fg.style.stroke='url(#pomoGradShort)';}
+  else{el.textContent='🛋 长时休息';el.style.color='var(--teal)';fg.style.stroke='url(#pomoGradLong)';}
+  document.getElementById('pomoSession').textContent=`第 ${pomoSession} 轮`;
+}
+function pomoBuildDots() {
+  let h=''; for(let i=1;i<=POMO_SESSIONS;i++){let c=i<pomoSession?'done':i===pomoSession&&pomoPhase==='work'?'active':'';h+=`<div class="pomo-dot ${c}"></div>`;}
+  document.getElementById('pomoDots').innerHTML=h;
+}
+function pomoToggle() {
+  if(!pomoRunning) {
+    if(pomoRemaining===0){const s=pomoGetSettings();pomoTotal=s[pomoPhase==='long'?'long':pomoPhase==='short'?'short':'work'];pomoRemaining=pomoTotal;}
+    pomoRunning=true;
+    document.getElementById('pomoStartBtn').textContent='⏸ 暂停';
+    document.getElementById('pomoStartBtn').className='btn btn-orange';
+    ['pomoWork','pomoShort','pomoLong'].forEach(id=>document.getElementById(id).disabled=true);
+    pomoInterval=setInterval(()=>{
+      pomoRemaining--;pomoRenderTime(pomoRemaining);pomoRenderRing(pomoRemaining/pomoTotal);
+      if(pomoRemaining<=0){clearInterval(pomoInterval);pomoRunning=false;
+        document.getElementById('pomoStartBtn').textContent='▶ 开始';
+        document.getElementById('pomoStartBtn').className='btn btn-danger';
+        ['pomoWork','pomoShort','pomoLong'].forEach(id=>document.getElementById(id).disabled=false);
+        pomoAdvance();}
+    },1000);
+  } else {
+    pomoRunning=false;clearInterval(pomoInterval);
+    document.getElementById('pomoStartBtn').textContent='▶ 继续';
+    document.getElementById('pomoStartBtn').className='btn btn-danger';
+    ['pomoWork','pomoShort','pomoLong'].forEach(id=>document.getElementById(id).disabled=false);
+  }
+}
+function pomoAdvance() {
+  const s=pomoGetSettings();
+  if(pomoPhase==='work'){
+    triggerAlarm('专注结束！该休息了 ☕');
+    if(pomoSession%POMO_SESSIONS===0){pomoPhase='long';pomoTotal=s.long;}
+    else{pomoPhase='short';pomoTotal=s.short;}
+  } else {
+    stopAllNature();
+    triggerAlarm('休息结束！开始专注 🍅');
+    if(pomoPhase==='long') pomoSession=1; else pomoSession++;
+    pomoPhase='work';pomoTotal=s.work;
+  }
+  pomoRemaining=pomoTotal;pomoRenderTime(pomoRemaining);pomoRenderRing(1);pomoRenderPhase();pomoBuildDots();
+}
+function pomoSkip() { clearInterval(pomoInterval);pomoRunning=false;stopAllNature();document.getElementById('pomoStartBtn').textContent='▶ 开始';document.getElementById('pomoStartBtn').className='btn btn-danger';['pomoWork','pomoShort','pomoLong'].forEach(id=>document.getElementById(id).disabled=false);pomoAdvance(); }
+function pomoReset() { clearInterval(pomoInterval);pomoRunning=false;stopAllNature();pomoPhase='work';pomoSession=1;const s=pomoGetSettings();pomoTotal=s.work;pomoRemaining=s.work;pomoRenderTime(pomoRemaining);pomoRenderRing(1);pomoRenderPhase();pomoBuildDots();document.getElementById('pomoStartBtn').textContent='▶ 开始';document.getElementById('pomoStartBtn').className='btn btn-danger';['pomoWork','pomoShort','pomoLong'].forEach(id=>document.getElementById(id).disabled=false); }
+
+/* ===========================================================
+   ⑤ ALARM CLOCK
+=========================================================== */
+const DAY_NAMES = ['日','一','二','三','四','五','六'];
+let alarmDaySelection = [1,2,3,4,5];
+let alarmIdCounter = Date.now();
+
+function getAlarms() { try{return JSON.parse(localStorage.getItem('alarms')||'[]');}catch(e){return[];} }
+function saveAlarms(a) { localStorage.setItem('alarms', JSON.stringify(a)); }
+
+function buildDayPicker() {
+  document.getElementById('alarmDayPicker').innerHTML = DAY_NAMES.map((d,i) =>
+    `<div class="day-chip ${alarmDaySelection.includes(i)?'selected':''}" onclick="toggleDay(${i})">${d}</div>`
+  ).join('');
+}
+function toggleDay(i) { const idx=alarmDaySelection.indexOf(i);if(idx>=0)alarmDaySelection.splice(idx,1);else alarmDaySelection.push(i);alarmDaySelection.sort();buildDayPicker(); }
+
+function alarmAdd() {
+  const h=parseInt(document.getElementById('alarmHour').value), m=parseInt(document.getElementById('alarmMin').value);
+  if(isNaN(h)||isNaN(m)||h<0||h>23||m<0||m>59) return;
+  const label=document.getElementById('alarmLabelInput').value.trim();
+  const alarms=getAlarms();
+  alarms.push({id:++alarmIdCounter, h, m, label:label||'', days:[...alarmDaySelection], enabled:true, triggered:false, sound:selectedAlarmSound});
+  saveAlarms(alarms);
+  document.getElementById('alarmLabelInput').value='';
+  renderAlarms();
+}
+function alarmToggle(id) { const alarms=getAlarms();const a=alarms.find(x=>x.id===id);if(a){a.enabled=!a.enabled;a.triggered=false;saveAlarms(alarms);renderAlarms();} }
+function alarmDelete(id) { saveAlarms(getAlarms().filter(x=>x.id!==id)); renderAlarms(); }
+
+function daysToStr(days) {
+  if(days.length===7) return '每天';
+  if(days.length===5 && [1,2,3,4,5].every(d=>days.includes(d))) return '工作日';
+  if(days.length===2 && days.includes(0) && days.includes(6)) return '周末';
+  if(days.length===0) return '仅一次';
+  return days.map(d=>'周'+DAY_NAMES[d]).join('、');
+}
+
+function renderAlarms() {
+  const alarms=getAlarms(), list=document.getElementById('alarmList'), empty=document.getElementById('alarmEmpty'), addArea=document.getElementById('alarmAddArea');
+  if(!alarms.length){empty.style.display='';addArea.style.display='none';return;}
+  empty.style.display='none';addArea.style.display='';
+  list.innerHTML = alarms.sort((a,b)=>(a.h*60+a.m)-(b.h*60+b.m)).map(a => {
+    const m = MELODIES.find(x=>x.id===(a.sound||'default'));
+    return `<div class="alarm-item ${a.enabled?'':'disabled'}">
+      <div class="ai-time">${pad(a.h)}:${pad(a.m)}</div>
+      <div class="ai-info">
+        <div class="ai-label">${a.label||'闹钟'}</div>
+        <div class="ai-days">${daysToStr(a.days)} · ${m?m.flag+' '+m.name:'🔔 经典铃声'}</div>
+      </div>
+      <label class="toggle-switch"><input type="checkbox" ${a.enabled?'checked':''} onchange="alarmToggle(${a.id})" /><span class="toggle-slider"></span></label>
+      <button class="alarm-delete" onclick="alarmDelete(${a.id})" title="删除">×</button>
+    </div>`;
+  }).join('');
+}
+
+function checkAlarms() {
+  const now=new Date(), h=now.getHours(), m=now.getMinutes(), s=now.getSeconds(), dow=now.getDay();
+  if(s!==0) return;
+  const alarms=getAlarms(); let changed=false;
+  alarms.forEach(a => {
+    if(!a.enabled) return;
+    if(a.h!==h||a.m!==m){a.triggered=false;return;}
+    if(a.triggered) return;
+    if(a.days.length>0&&!a.days.includes(dow)) return;
+    a.triggered=true; changed=true;
+    // Use per-alarm sound if set
+    const prevSound = selectedAlarmSound;
+    if(a.sound) selectedAlarmSound = a.sound;
+    triggerAlarm((a.label||'闹钟') + ' ' + pad(a.h) + ':' + pad(a.m));
+    selectedAlarmSound = prevSound;
+  });
+  if(changed) saveAlarms(alarms);
+}
+setInterval(checkAlarms, 1000);
+
+/* ===========================================================
+   THEME SYSTEM
+=========================================================== */
+const DEFAULT_THEME = { bg:'#0f0f1a', card:'#1e1e35', accent:'#7c3aed' };
+const BG_PRESETS = ['#0f0f1a','#1a0a2e','#0a1628','#0d1b0e','#1b1410','#0e0e0e','#191425','#0a192f','#0b1622','#15101c'];
+const CARD_PRESETS = ['#1e1e35','#251530','#152238','#15291a','#2a1e16','#1c1c1c','#20192f','#142030','#181e2e','#201a28'];
+const ACCENT_PRESETS = ['#7c3aed','#e11d48','#0ea5e9','#10b981','#f59e0b','#ec4899','#06b6d4','#8b5cf6','#ef4444','#6366f1'];
+let currentTheme = loadTheme();
+
+function loadTheme() { try{return{...DEFAULT_THEME,...JSON.parse(localStorage.getItem('clock_theme')||'{}')};}catch(e){return{...DEFAULT_THEME};} }
+function saveTheme() { localStorage.setItem('clock_theme',JSON.stringify(currentTheme)); }
+
+function applyTheme() {
+  const r=document.documentElement, bg=currentTheme.bg, card=currentTheme.card, accent=currentTheme.accent;
+  r.style.setProperty('--bg',bg);r.style.setProperty('--surface',lighten(bg,8));r.style.setProperty('--surface2',lighten(bg,12));
+  r.style.setProperty('--card',card);r.style.setProperty('--accent',accent);r.style.setProperty('--accent2',lighten(accent,20));
+  r.style.setProperty('--accent3',lighten(accent,35));r.style.setProperty('--border',hexToRgba(accent,0.2));
+  document.querySelector('.bg-gradient').style.background=`radial-gradient(ellipse at 20% 20%,${hexToRgba(accent,0.12)} 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,${hexToRgba(accent,0.06)} 0%,transparent 50%),radial-gradient(ellipse at 50% 50%,${hexToRgba(lighten(accent,20),0.04)} 0%,transparent 60%)`;
+  document.getElementById('bgColorPicker').value=bg;document.getElementById('cardColorPicker').value=card;document.getElementById('accentColorPicker').value=accent;
+  updateSwatchActive('bgPresets',bg);updateSwatchActive('cardPresets',card);updateSwatchActive('accentPresets',accent);
+  updateSvgGradients(accent);
+}
+function updateSvgGradients(accent) { const s=document.querySelectorAll('#cdGrad stop'); if(s.length===2){s[0].setAttribute('stop-color',accent);s[1].setAttribute('stop-color',lighten(accent,20));} }
+function updateSwatchActive(id,color) { document.getElementById(id).querySelectorAll('.theme-swatch').forEach(sw=>{sw.classList.toggle('active',sw.dataset.color.toLowerCase()===color.toLowerCase());}); }
+function setBgColor(c) { currentTheme.bg=c; if(colorDistance(c,currentTheme.card)<30)currentTheme.card=lighten(c,12); saveTheme();applyTheme(); }
+function setCardColor(c) { currentTheme.card=c; saveTheme();applyTheme(); }
+function setAccentColor(c) { currentTheme.accent=c; saveTheme();applyTheme(); }
+function resetTheme() { currentTheme={...DEFAULT_THEME}; saveTheme();applyTheme(); }
+function buildSwatches(id,presets,fn) { document.getElementById(id).innerHTML=presets.map(c=>`<div class="theme-swatch" data-color="${c}" style="background:${c}" onclick="${fn}('${c}')"></div>`).join(''); }
+function toggleThemePanel() { document.getElementById('themePanel').classList.toggle('open'); }
+
+function hexToRgb(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');return{r:parseInt(h.slice(0,2),16),g:parseInt(h.slice(2,4),16),b:parseInt(h.slice(4,6),16)};}
+function hexToRgba(h,a){const{r,g,b}=hexToRgb(h);return`rgba(${r},${g},${b},${a})`;}
+function lighten(h,p){const{r,g,b}=hexToRgb(h);const a=Math.round(2.55*p);return`#${((1<<24)+(Math.min(255,r+a)<<16)+(Math.min(255,g+a)<<8)+Math.min(255,b+a)).toString(16).slice(1)}`;}
+function colorDistance(c1,c2){const a=hexToRgb(c1),b=hexToRgb(c2);return Math.sqrt((a.r-b.r)**2+(a.g-b.g)**2+(a.b-b.b)**2);}
+
+/* ===========================================================
+   INIT
+=========================================================== */
+buildSwatches('bgPresets',BG_PRESETS,'setBgColor');
+buildSwatches('cardPresets',CARD_PRESETS,'setCardColor');
+buildSwatches('accentPresets',ACCENT_PRESETS,'setAccentColor');
+applyTheme();
+
+buildWorldSelect(); renderWorldGrid(); updateWorldClocks();
+setInterval(updateWorldClocks, 1000);
+
+pomoReset();
+
+buildSoundGrid();
+buildDayPicker();
+renderAlarms();
+
+document.getElementById('cdDisplay').style.display = 'none';
+</script>
+</body>
+</html>

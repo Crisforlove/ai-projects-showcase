@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>学生 AI 作品展示</title>
+  <style>
+    :root {
+      --bg: #0f0f1a;
+      --surface: #1a1a2e;
+      --card: #1e1e35;
+      --accent: #7c3aed;
+      --accent2: #a78bfa;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --border: #2d2d4a;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: linear-gradient(135deg, var(--bg) 0%, var(--surface) 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 20px 40px;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 50px;
+      max-width: 720px;
+    }
+    h1 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent2), #ec4899);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.6;
+    }
+    .projects {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      max-width: 900px;
+      width: 100%;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      text-decoration: none;
+      color: var(--text);
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+      box-shadow: 0 12px 32px rgba(124, 58, 237, 0.25);
+    }
+    .emoji { font-size: 2.4rem; }
+    .card h2 {
+      font-size: 1.4rem;
+      font-weight: 600;
+    }
+    .author {
+      color: var(--accent2);
+      font-size: 0.95rem;
+    }
+    .desc {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-top: 4px;
+    }
+    .cta {
+      margin-top: 8px;
+      color: var(--accent2);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    footer {
+      margin-top: 60px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>学生 AI 作品展示</h1>
+    <p class="subtitle">这里是同学们使用 AI 工具完成的编程作品，点击下方卡片即可在线体验。</p>
+  </header>
+
+  <main class="projects">
+    <a class="card" href="./sophie-clock/">
+      <div class="emoji">⏰</div>
+      <h2>时钟工具箱</h2>
+      <div class="author">作者：Sophie</div>
+      <p class="desc">一个集合多种时钟功能的网页工具箱。</p>
+      <div class="cta">打开作品 →</div>
+    </a>
+
+    <a class="card" href="./fighting-game/">
+      <div class="emoji">🥊</div>
+      <h2>格斗游戏：拳皇 vs 炸弹人</h2>
+      <p class="desc">使用 HTML/CSS/JavaScript 制作的网页格斗小游戏。</p>
+      <div class="cta">开始游戏 →</div>
+    </a>
+  </main>
+
+  <footer>
+    Made with AI · Hosted on GitHub Pages
+  </footer>
+</body>
+</html>
