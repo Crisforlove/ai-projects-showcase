@@ -8,6 +8,7 @@
 
 - ⏰ [时钟工具箱（Sophie）](https://crisforlove.github.io/ai-projects-showcase/sophie-clock/)
 - 🥊 [格斗游戏：拳皇 vs 炸弹人](https://crisforlove.github.io/ai-projects-showcase/fighting-game/)
+- ⌨️ [TypeMaster 智能打字学习平台（Sophie）](https://crisforlove.github.io/ai-projects-showcase/typemaster/)
 
 ## 目录结构
 
@@ -15,5 +16,6 @@
 .
 ├── index.html          # 作品展示首页
 ├── sophie-clock/       # Sophie 的时钟工具箱
-└── fighting-game/      # 格斗游戏
+├── fighting-game/      # 格斗游戏
+└── typemaster/         # Sophie 的智能打字学习平台
 ```

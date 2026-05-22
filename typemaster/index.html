@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TypeMaster — 智能打字学习平台</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav>
+  <div class="nav-logo"><div class="dot"></div>TypeMaster</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" data-nav="home">主页</button>
+    <button class="nav-tab" data-nav="lesson">键位教学</button>
+    <button class="nav-tab" data-nav="exam">模拟考试</button>
+    <button class="nav-tab" data-nav="memory">记忆关联</button>
+    <button class="nav-tab" data-nav="teacher">教师后台</button>
+    <button class="nav-tab" data-nav="game">趣味游戏</button>
+  </div>
+  <div class="nav-right">
+    <div class="streak">
+      <div class="streak-dot">🔥</div>
+      <span id="streakDays">7</span> 天连续
+    </div>
+    <button class="btn btn-primary" data-nav="lesson">开始练习</button>
+  </div>
+</nav>
+
+<div id="comboContainer" class="combo-container"></div>
+<div class="toast" id="toast"></div>
+
+<!-- 页面容器（由 JS 动态渲染） -->
+<div id="mainContent"></div>
+
+<!-- 加载顺序：全局命名空间 → 数据 → 组件 → 页面 → 应用入口 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+<!-- 数据 -->
+<script src="data/lessons.js"></script>
+<script src="data/vocab.js"></script>
+<script src="data/exam-texts.js"></script>
+<script src="data/game-words.js"></script>
+
+<!-- 组件 -->
+<script src="js/components/keyboard.js"></script>
+<script src="js/components/typing-engine.js"></script>
+<script src="js/components/hand-diagram.js"></script>
+<script src="js/components/effects.js"></script>
+
+<!-- 页面 -->
+<script src="js/pages/home.js"></script>
+<script src="js/pages/lesson.js"></script>
+<script src="js/pages/exam.js"></script>
+<script src="js/pages/memory.js"></script>
+<script src="js/pages/teacher.js"></script>
+<script src="js/pages/game.js"></script>
+
+<!-- 应用入口 -->
+<script src="js/app.js"></script>
+</body>
+</html>
